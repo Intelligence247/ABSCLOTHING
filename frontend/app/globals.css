@@ -1,0 +1,95 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* ABS Clothing Brand Colors */
+  --background: #F9F8F6;
+  --foreground: #1A1A1A;
+  --hero-bg: #05120F;
+  --primary: #0A3D2E;
+  --primary-foreground: #F9F8F6;
+  --accent: #C5A059;
+  --accent-foreground: #05120F;
+  --muted: #E8E6E3;
+  --muted-foreground: #666666;
+  --card: #FFFFFF;
+  --card-foreground: #1A1A1A;
+  --border: #E8E6E3;
+  --input: #E8E6E3;
+  --ring: #C5A059;
+  --radius: 0.125rem;
+  
+  /* Chart colors */
+  --chart-1: #0A3D2E;
+  --chart-2: #C5A059;
+  --chart-3: #05120F;
+  --chart-4: #1A1A1A;
+  --chart-5: #F9F8F6;
+}
+
+@theme inline {
+  --font-sans: var(--font-sans), 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-serif: var(--font-serif), 'Cormorant Garamond', Georgia, serif;
+  --font-mono: 'Geist Mono', monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-hero-bg: var(--hero-bg);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius));
+  --radius-md: calc(var(--radius) + 2px);
+  --radius-lg: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) + 8px);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  
+  /* Custom scrollbar for horizontal scroll */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* Bespoke stroke text effect for hero */
+.stroke-text {
+  -webkit-text-stroke: 1px rgba(197, 160, 89, 0.25);
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Selection color */
+::selection {
+  background-color: rgba(197, 160, 89, 0.3);
+  color: #1A1A1A;
+}
