@@ -6,13 +6,24 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Plus, Edit2, Trash2, Search, X } from "lucide-react"
 import { ProductForm } from "@/components/admin/product-form"
 import type { Product } from "@/lib/products"
+import { ApiError } from "@/lib/api"
 
 export default function ProductsPage() {
-  const { products, addProduct, updateProduct, deleteProduct } = useAdminData()
+  const {
+    products,
+    productsLoading,
+    productsError,
+    refreshProducts,
+    addProduct,
+    updateProduct,
+    deleteProduct,
+  } = useAdminData()
   const [searchTerm, setSearchTerm] = useState("")
   const [showForm, setShowForm] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [filterCategory, setFilterCategory] = useState("")
+  const [formError, setFormError] = useState("")
+  const [saving, setSaving] = useState(false)
 
   const filteredProducts = products.filter((p) => {
     const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -20,22 +31,40 @@ export default function ProductsPage() {
     return matchesSearch && matchesCategory
   })
 
-  const handleAddProduct = (productData: Omit<Product, "id">) => {
-    addProduct(productData)
-    setShowForm(false)
-  }
-
-  const handleUpdateProduct = (productData: Omit<Product, "id">) => {
-    if (editingProduct) {
-      updateProduct(editingProduct.id, productData)
-      setEditingProduct(null)
+  const handleAddProduct = async (productData: Omit<Product, "id">) => {
+    setFormError("")
+    setSaving(true)
+    try {
+      await addProduct(productData)
       setShowForm(false)
+    } catch (e) {
+      setFormError(e instanceof ApiError ? e.message : e instanceof Error ? e.message : "Failed to create product")
+    } finally {
+      setSaving(false)
     }
   }
 
-  const handleDeleteProduct = (id: string) => {
-    if (confirm("Are you sure you want to delete this product?")) {
-      deleteProduct(id)
+  const handleUpdateProduct = async (productData: Omit<Product, "id">) => {
+    if (!editingProduct) return
+    setFormError("")
+    setSaving(true)
+    try {
+      await updateProduct(editingProduct.id, productData)
+      setEditingProduct(null)
+      setShowForm(false)
+    } catch (e) {
+      setFormError(e instanceof ApiError ? e.message : e instanceof Error ? e.message : "Failed to update product")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDeleteProduct = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this product?")) return
+    try {
+      await deleteProduct(id)
+    } catch (e) {
+      alert(e instanceof ApiError ? e.message : e instanceof Error ? e.message : "Failed to delete product")
     }
   }
 
@@ -53,12 +82,25 @@ export default function ProductsPage() {
           <h1 className="text-4xl font-serif font-bold text-[#1A1A1A] mb-2">
             Products
           </h1>
-          <p className="text-[#666666]">Manage your product catalog</p>
+          <p className="text-[#666666]">Manage your product catalog (synced with the API)</p>
+          {productsError && (
+            <div className="mt-3 flex flex-wrap items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-800">
+              <span>{productsError}</span>
+              <button
+                type="button"
+                onClick={() => void refreshProducts()}
+                className="font-semibold text-[#0A3D2E] underline hover:no-underline"
+              >
+                Retry
+              </button>
+            </div>
+          )}
         </div>
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => {
+            setFormError("")
             setEditingProduct(null)
             setShowForm(true)
           }}
@@ -90,6 +132,7 @@ export default function ProductsPage() {
                 </h2>
                 <button
                   onClick={() => {
+                    setFormError("")
                     setShowForm(false)
                     setEditingProduct(null)
                   }}
@@ -100,9 +143,16 @@ export default function ProductsPage() {
               </div>
 
               <div className="p-6">
+                {formError && (
+                  <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                    {formError}
+                  </div>
+                )}
                 <ProductForm
+                  key={editingProduct?.id ?? "new"}
                   onSubmit={editingProduct ? handleUpdateProduct : handleAddProduct}
                   initialData={editingProduct || undefined}
+                  isLoading={saving}
                 />
               </div>
             </motion.div>
@@ -169,7 +219,13 @@ export default function ProductsPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredProducts.length === 0 ? (
+              {productsLoading ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center text-[#666666]">
+                    Loading products…
+                  </td>
+                </tr>
+              ) : filteredProducts.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-8 text-center text-[#666666]">
                     No products found
@@ -208,6 +264,7 @@ export default function ProductsPage() {
                         <motion.button
                           whileHover={{ scale: 1.1 }}
                           onClick={() => {
+                            setFormError("")
                             setEditingProduct(product)
                             setShowForm(true)
                           }}

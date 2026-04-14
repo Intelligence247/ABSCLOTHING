@@ -12,15 +12,15 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
   
-  const isLoginPage = pathname === "/admin/login"
+  const isPublicAuthPage = pathname === "/admin/login" || pathname === "/admin/register"
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated && !isLoginPage) {
+    if (!isLoading && !isAuthenticated && !isPublicAuthPage) {
       router.push("/admin/login")
     }
-  }, [isAuthenticated, isLoading, router, isLoginPage])
+  }, [isAuthenticated, isLoading, router, isPublicAuthPage])
 
-  if (isLoginPage) {
+  if (isPublicAuthPage) {
     return <>{children}</>
   }
 

@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { useAdmin } from "@/lib/admin-context"
@@ -12,7 +13,21 @@ export default function AdminLoginPage() {
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
-  const { login } = useAdmin()
+  const { login, isAuthenticated, isLoading: authLoading } = useAdmin()
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      router.replace("/admin/dashboard")
+    }
+  }, [authLoading, isAuthenticated, router])
+
+  if (authLoading || isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#05120F] via-[#0A3D2E] to-[#05120F] flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin" />
+      </div>
+    )
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -20,13 +35,13 @@ export default function AdminLoginPage() {
     setIsLoading(true)
 
     try {
-      const success = login(email, password)
+      const success = await login(email, password)
       if (success) {
         router.push("/admin/dashboard")
       } else {
-        setError("Invalid email or password")
+        setError("Invalid admin credentials, or this account is not an administrator.")
       }
-    } catch (err) {
+    } catch {
       setError("An error occurred during login")
     } finally {
       setIsLoading(false)
@@ -69,9 +84,12 @@ export default function AdminLoginPage() {
             transition={{ delay: 0.3 }}
             className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6"
           >
-            <p className="text-xs text-blue-800 mb-1 font-semibold">Demo Credentials:</p>
-            <p className="text-xs text-blue-700">Email: admin@absclothing.com</p>
-            <p className="text-xs text-blue-700">Password: admin123</p>
+            <p className="text-xs text-blue-800 mb-1 font-semibold">Sign in with your API admin user</p>
+            <p className="text-xs text-blue-700">
+              After <span className="font-mono">npm run seed</span>, default is{" "}
+              <span className="font-mono">admin@absclothing.local</span> / <span className="font-mono">Admin123!</span>
+              (override with <span className="font-mono">SEED_ADMIN_*</span> in backend <span className="font-mono">.env</span>).
+            </p>
           </motion.div>
 
           {/* Error Message */}
@@ -99,7 +117,7 @@ export default function AdminLoginPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@absclothing.com"
+                  placeholder="admin@absclothing.local"
                   className="w-full pl-10 pr-4 py-3 border border-[#E8E6E3] rounded-lg focus:outline-none focus:border-[#0A3D2E] focus:ring-2 focus:ring-[#0A3D2E]/20 transition-all"
                   required
                 />
@@ -136,9 +154,16 @@ export default function AdminLoginPage() {
             </motion.button>
           </form>
 
-          {/* Footer Note */}
-          <p className="text-xs text-[#666666] text-center mt-6">
-            This is a demo admin panel. Use the credentials above to access it.
+          <p className="text-sm text-center text-[#666666] mt-6">
+            Need an account?{" "}
+            <Link href="/admin/register" className="text-[#0A3D2E] font-semibold hover:underline">
+              Register with server secret
+            </Link>
+          </p>
+
+          <p className="text-xs text-[#666666] text-center mt-4">
+            Sign in uses <span className="font-mono">POST /api/users/login</span> with an{" "}
+            <span className="font-mono">isAdmin</span> user.
           </p>
         </div>
       </motion.div>

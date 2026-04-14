@@ -6,9 +6,10 @@ import type { Product } from "@/lib/products"
 
 interface ProductGridProps {
   products: Product[]
+  gridView: "grid" | "large"
 }
 
-export function ProductGrid({ products }: ProductGridProps) {
+export function ProductGrid({ products, gridView }: ProductGridProps) {
   return (
     <div className="flex-1">
       <AnimatePresence mode="wait">
@@ -45,11 +46,15 @@ export function ProductGrid({ products }: ProductGridProps) {
           </motion.div>
         ) : (
           <motion.div
-            key="grid"
+            key={gridView}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="grid grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8"
+            className={
+              gridView === "large"
+                ? "grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-10"
+                : "grid grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8"
+            }
           >
             {products.map((product, index) => (
               <ProductCard key={product.id} product={product} index={index} />

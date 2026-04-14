@@ -5,11 +5,13 @@ import Image from "next/image"
 import Link from "next/link"
 import { Trash2, Plus, Minus } from "lucide-react"
 import { useCart } from "@/lib/cart-context"
+import { useCustomerAuth } from "@/lib/customer-auth-context"
 import { Navbar } from "@/components/landing/navbar"
 import { Footer } from "@/components/landing/footer"
 
 export default function CartPage() {
-  const { items, removeItem, updateQuantity, subtotal, total } = useCart()
+  const { items, removeItem, updateQuantity, subtotal, total, shippingCost } = useCart()
+  const { user } = useCustomerAuth()
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("en-NG", {
@@ -19,26 +21,37 @@ export default function CartPage() {
     }).format(price)
   }
 
-  const shippingCost = subtotal > 100000 ? 0 : 5000
-
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pt-20">
       <Navbar />
 
       {/* Hero */}
-      <div className="relative h-64 bg-gradient-to-b from-primary/80 to-primary/40 flex items-center overflow-hidden">
+      <section className="relative h-[36vh] min-h-[260px] bg-[#05120F] flex items-center overflow-hidden">
+        <div className="absolute inset-0 opacity-5">
+          <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <pattern id="cart-grid" width="10" height="10" patternUnits="userSpaceOnUse">
+              <path d="M 10 0 L 0 0 0 10" fill="none" stroke="currentColor" strokeWidth="0.5" />
+            </pattern>
+            <rect width="100%" height="100%" fill="url(#cart-grid)" />
+          </svg>
+        </div>
         <div className="container mx-auto px-4 relative z-10">
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="text-5xl md:text-6xl font-serif font-bold text-primary-foreground"
+            className="text-4xl md:text-6xl font-serif font-bold text-[#F9F8F6]"
           >
             Shopping Cart
           </motion.h1>
+          <p className="mt-3 text-[#F9F8F6]/75 text-base md:text-lg max-w-xl">
+            Review your selected items and continue securely to checkout.
+          </p>
         </div>
-        <div className="absolute inset-0 stroke-text text-8xl font-serif font-bold opacity-10">CART</div>
-      </div>
+        <div className="absolute inset-0 stroke-text text-8xl md:text-9xl font-serif font-bold opacity-10 flex items-center justify-center pointer-events-none">
+          CART
+        </div>
+      </section>
 
       <div className="container mx-auto px-4 py-16">
         {items.length === 0 ? (
@@ -69,7 +82,7 @@ export default function CartPage() {
                   className="flex gap-6 border-b border-border pb-6"
                 >
                   {/* Image */}
-                  <div className="relative w-24 h-32 flex-shrink-0 overflow-hidden bg-muted">
+                  <div className="relative w-24 h-32 shrink-0 overflow-hidden bg-muted">
                     <Image
                       src={item.product.image}
                       alt={item.product.name}
@@ -194,13 +207,20 @@ export default function CartPage() {
                   <span className="text-accent">{formatPrice(total)}</span>
                 </div>
 
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="w-full bg-primary text-primary-foreground py-4 font-semibold tracking-widest uppercase hover:bg-primary/90 transition-colors"
+                <Link
+                  href={user ? "/checkout" : "/account/login?returnTo=%2Fcheckout"}
+                  className="block w-full text-center bg-primary text-primary-foreground py-4 font-semibold tracking-widest uppercase hover:bg-primary/90 transition-colors"
                 >
-                  Proceed to Checkout
-                </motion.button>
+                  {user ? "Proceed to checkout" : "Sign in to checkout"}
+                </Link>
+                {!user && (
+                  <p className="text-center text-xs text-muted-foreground">
+                    <Link href="/account/register?returnTo=%2Fcheckout" className="underline hover:text-foreground">
+                      Create an account
+                    </Link>{" "}
+                    if you don&apos;t have one yet.
+                  </p>
+                )}
 
                 <Link
                   href="/shop"

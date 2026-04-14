@@ -1,37 +1,93 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { useParams } from "next/navigation"
 import { motion } from "framer-motion"
 import Image from "next/image"
 import Link from "next/link"
-import { products } from "@/lib/products"
+import type { Product } from "@/lib/products"
 import { useCart } from "@/lib/cart-context"
 import { Heart, Share2, Truck, Shield, RotateCcw, Check } from "lucide-react"
 import { Navbar } from "@/components/landing/navbar"
 import { Footer } from "@/components/landing/footer"
 import { ProductCard } from "@/components/shop/product-card"
+import { fetchProductById, fetchProducts } from "@/lib/product-api"
+import { collectionNameToSlug } from "@/lib/collections-public"
 
-export default function ProductDetailPage({ params }: { params: { id: string } }) {
+function productIdFromParams(id: unknown): string {
+  if (typeof id === "string" && id.length > 0) return id
+  if (Array.isArray(id) && typeof id[0] === "string" && id[0].length > 0) return id[0]
+  return ""
+}
+
+export default function ProductDetailPage() {
+  const params = useParams()
+  const productId = productIdFromParams(params?.id)
   const { addItem } = useCart()
-  const product = products.find((p) => p.id === params.id)
+  const [product, setProduct] = useState<Product | null>(null)
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState("")
   const [selectedColor, setSelectedColor] = useState(0)
-  const [selectedSize, setSelectedSize] = useState(product?.sizes[0] || "")
+  const [selectedSize, setSelectedSize] = useState("")
   const [quantity, setQuantity] = useState(1)
   const [isLiked, setIsLiked] = useState(false)
-  const [mainImage, setMainImage] = useState(product?.image || "")
+  const [mainImage, setMainImage] = useState("")
   const [addedToCart, setAddedToCart] = useState(false)
 
-  if (!product) {
+  useEffect(() => {
+    let cancelled = false
+    const run = async () => {
+      if (!productId) {
+        setIsLoading(false)
+        setError("Invalid product link")
+        setProduct(null)
+        return
+      }
+      setIsLoading(true)
+      setError("")
+      try {
+        const loaded = await fetchProductById(productId)
+        if (cancelled) return
+        setProduct(loaded)
+        setSelectedColor(0)
+        setSelectedSize(loaded.sizes[0] || "")
+        setMainImage(loaded.image)
+        const related = await fetchProducts({ collection: loaded.collection })
+        if (!cancelled) {
+          setRelatedProducts(related.filter((p) => p.id !== loaded.id).slice(0, 4))
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setProduct(null)
+          setRelatedProducts([])
+          setError(err instanceof Error ? err.message : "Could not load product")
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false)
+      }
+    }
+    run()
+    return () => {
+      cancelled = true
+    }
+  }, [productId])
+
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-xl text-muted-foreground">Product not found</p>
+        <p className="text-xl text-muted-foreground">Loading product...</p>
       </div>
     )
   }
 
-  const relatedProducts = products.filter(
-    (p) => p.collection === product.collection && p.id !== product.id
-  ).slice(0, 4)
+  if (!product) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-xl text-muted-foreground">{error || "Product not found"}</p>
+      </div>
+    )
+  }
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("en-NG", {
@@ -57,7 +113,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
           </Link>
           <span>/</span>
           <Link
-            href={`/collections/${product.collection.toLowerCase()}`}
+            href={`/collections/${collectionNameToSlug(product.collection)}`}
             className="hover:text-foreground transition-colors"
           >
             {product.collection}

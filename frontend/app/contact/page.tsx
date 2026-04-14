@@ -5,6 +5,8 @@ import { motion } from "framer-motion"
 import { Navbar } from "@/components/landing/navbar"
 import { Footer } from "@/components/landing/footer"
 import { Mail, Phone, MapPin, Clock } from "lucide-react"
+import { submitContactMessage } from "@/lib/contact-api"
+import { toast } from "sonner"
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -16,6 +18,7 @@ export default function ContactPage() {
   })
   const [submitted, setSubmitted] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [submitError, setSubmitError] = useState("")
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -25,15 +28,19 @@ export default function ContactPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-
-    // Simulate form submission
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-
-    setSubmitted(true)
-    setFormData({ name: "", email: "", phone: "", subject: "", message: "" })
-    setIsLoading(false)
-
-    setTimeout(() => setSubmitted(false), 5000)
+    setSubmitError("")
+    try {
+      await submitContactMessage(formData)
+      toast.success("Message sent successfully. We will reply by email soon.")
+      setSubmitted(true)
+      setFormData({ name: "", email: "", phone: "", subject: "", message: "" })
+      setTimeout(() => setSubmitted(false), 5000)
+    } catch (e) {
+      setSubmitted(false)
+      setSubmitError(e instanceof Error ? e.message : "Could not send message right now. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const fadeInUp = {
@@ -43,17 +50,33 @@ export default function ContactPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pt-20">
       <Navbar />
 
       {/* Hero Section */}
-      <div className="relative h-80 bg-gradient-to-b from-primary/80 to-primary/40 flex items-center overflow-hidden">
+      <section className="relative h-[38vh] min-h-[280px] bg-[#05120F] flex items-center overflow-hidden">
+        <div className="absolute inset-0 opacity-5">
+          <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <pattern id="contact-grid" width="10" height="10" patternUnits="userSpaceOnUse">
+              <path d="M 10 0 L 0 0 0 10" fill="none" stroke="currentColor" strokeWidth="0.5" />
+            </pattern>
+            <rect width="100%" height="100%" fill="url(#contact-grid)" />
+          </svg>
+        </div>
+        <motion.span
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1 }}
+          className="absolute inset-0 flex items-center justify-center text-[16vw] font-serif tracking-wider stroke-text select-none"
+        >
+          CONTACT
+        </motion.span>
         <div className="container mx-auto px-4 relative z-10">
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="text-5xl md:text-6xl font-serif font-bold text-primary-foreground mb-4"
+            className="text-4xl md:text-6xl font-serif font-bold text-[#F9F8F6] mb-4"
           >
             Get In Touch
           </motion.h1>
@@ -61,13 +84,12 @@ export default function ContactPage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-primary-foreground/80 text-lg md:text-xl max-w-2xl"
+            className="text-[#F9F8F6]/75 text-lg md:text-xl max-w-2xl"
           >
             We'd love to hear from you. Reach out with any questions or inquiries.
           </motion.p>
         </div>
-        <div className="absolute inset-0 stroke-text text-8xl font-serif font-bold opacity-10">CONTACT</div>
-      </div>
+      </section>
 
       <div className="container mx-auto px-4 py-20">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 mb-20">
@@ -90,7 +112,7 @@ export default function ContactPage() {
             {
               icon: MapPin,
               title: "Location",
-              content: "2 Mogaji Compound, Tanke Iledu",
+              content: "Tanke ilorin Kwara state",
               description: "Kwara State, Nigeria",
             },
           ].map((item, i) => {
@@ -229,6 +251,15 @@ export default function ContactPage() {
                   Thank you! Your message has been sent successfully.
                 </motion.div>
               )}
+              {submitError && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded"
+                >
+                  {submitError}
+                </motion.div>
+              )}
             </form>
           </motion.div>
 
@@ -273,16 +304,25 @@ export default function ContactPage() {
             {/* Social Links */}
             <div>
               <h4 className="text-lg font-serif mb-4">Follow Us</h4>
-              <div className="flex gap-4">
-                {["Instagram", "Facebook", "Twitter"].map((social) => (
-                  <a
-                    key={social}
-                    href="#"
-                    className="w-12 h-12 bg-primary text-primary-foreground flex items-center justify-center hover:bg-accent hover:text-accent-foreground transition-colors text-sm font-semibold"
-                  >
-                    {social[0]}
-                  </a>
-                ))}
+              <div className="space-y-2 text-sm">
+                <a href="https://instagram.com/abs_fashiondesign" target="_blank" rel="noopener noreferrer" className="block text-foreground/80 hover:text-accent">
+                  IG: @abs_fashiondesign
+                </a>
+                <a href="https://www.youtube.com/@absclothing" target="_blank" rel="noopener noreferrer" className="block text-foreground/80 hover:text-accent">
+                  YouTube: @absclothing
+                </a>
+                <a href="https://www.tiktok.com/@absclothing1" target="_blank" rel="noopener noreferrer" className="block text-foreground/80 hover:text-accent">
+                  TikTok: @absclothing1
+                </a>
+                <a href="https://wa.me/2348087891756" target="_blank" rel="noopener noreferrer" className="block text-foreground/80 hover:text-accent">
+                  WhatsApp: 08087891756
+                </a>
+                <a href="https://www.pinterest.com/absclothing1" target="_blank" rel="noopener noreferrer" className="block text-foreground/80 hover:text-accent">
+                  Pinterest: Absclothing1
+                </a>
+                <a href="https://x.com/sodiqabidemi23" target="_blank" rel="noopener noreferrer" className="block text-foreground/80 hover:text-accent">
+                  X: @sodiqabidemi23
+                </a>
               </div>
             </div>
           </motion.div>

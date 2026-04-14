@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react"
 import type { Product } from "./products"
+import { getShippingCostNgn } from "@/lib/pricing"
 
 export interface CartItem {
   product: Product
@@ -12,20 +13,24 @@ export interface CartItem {
 
 interface CartContextType {
   items: CartItem[]
+  /** True after cart has been read from localStorage (avoids checkout redirect / save-before-load bugs). */
+  isHydrated: boolean
   addItem: (product: Product, color: string, size: string, quantity: number) => void
   removeItem: (productId: string, color: string, size: string) => void
   updateQuantity: (productId: string, color: string, size: string, quantity: number) => void
   clearCart: () => void
   total: number
   subtotal: number
+  shippingCost: number
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined)
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([])
+  const [isHydrated, setIsHydrated] = useState(false)
 
-  // Load from localStorage on mount
+  // Load from localStorage on mount (before any save effect runs)
   useEffect(() => {
     if (typeof window === "undefined") return
 
@@ -37,13 +42,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         setItems([])
       }
     }
+    setIsHydrated(true)
   }, [])
 
-  // Save to localStorage when items change
+  // Save to localStorage when items change (only after initial load)
   useEffect(() => {
-    if (typeof window === "undefined") return
+    if (typeof window === "undefined" || !isHydrated) return
     localStorage.setItem("cart", JSON.stringify(items))
-  }, [items])
+  }, [items, isHydrated])
 
   const addItem = (product: Product, color: string, size: string, quantity: number) => {
     setItems((prevItems) => {
@@ -91,19 +97,21 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }
 
   const subtotal = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0)
-  const shippingCost = subtotal > 100000 ? 0 : 5000
+  const shippingCost = getShippingCostNgn(subtotal)
   const total = subtotal + shippingCost
 
   return (
     <CartContext.Provider
       value={{
         items,
+        isHydrated,
         addItem,
         removeItem,
         updateQuantity,
         clearCart,
         total,
         subtotal,
+        shippingCost,
       }}
     >
       {children}

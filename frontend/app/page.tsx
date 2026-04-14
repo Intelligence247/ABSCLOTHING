@@ -5,11 +5,22 @@ import { Category } from "@/components/landing/category"
 import { Featured } from "@/components/landing/featured"
 import { Testimonials } from "@/components/landing/testimonials"
 import { Footer } from "@/components/landing/footer"
+import { Navbar } from "@/components/landing/navbar"
+import { collectionNameToSlug, getPublicCollections } from "@/lib/collections-public"
 
-export default function Home() {
+export default async function Home() {
+  const collections = await getPublicCollections()
+  const heroCollections = collections.map((c) => ({
+    name: c.name,
+    slug: collectionNameToSlug(c.name),
+    description: c.description,
+    heroImage: c.heroImage,
+  }))
+
   return (
     <main className="overflow-x-hidden">
-      <Hero />
+      <Navbar />
+      <Hero collections={heroCollections} />
       <Statement />
       <Process />
       <Category />

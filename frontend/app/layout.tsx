@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Cormorant_Garamond, Plus_Jakarta_Sans } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
-import { CartProvider } from '@/lib/cart-context'
+import { AppProviders } from '@/app/providers'
 import './globals.css'
 
 const cormorant = Cormorant_Garamond({
@@ -23,6 +23,9 @@ export const metadata: Metadata = {
   description: 'Exquisite tailoring and bespoke design for the modern Nigerian. Hand-crafted in Ilorin. CAC Registered: BN 3573316',
   keywords: ['Nigerian fashion', 'bespoke tailoring', 'Agbada', 'African fashion', 'custom suits', 'Ilorin tailor'],
   authors: [{ name: 'ABS Clothing' }],
+  icons: {
+    icon: '/icon.png',
+  },
   openGraph: {
     title: 'ABS Clothing | Bespoke Nigerian Fashion',
     description: 'Exquisite tailoring and bespoke design for the modern Nigerian. Hand-crafted in Ilorin.',
@@ -44,10 +47,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${cormorant.variable} ${plusJakarta.variable}`}>
       <body className="font-sans antialiased">
-        <CartProvider>
+        <AppProviders>
           {children}
           <Analytics />
-        </CartProvider>
+        </AppProviders>
       </body>
     </html>
   )

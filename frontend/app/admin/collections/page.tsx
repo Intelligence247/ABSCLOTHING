@@ -5,10 +5,19 @@ import { useAdminData } from "@/lib/admin-data-context"
 import { motion, AnimatePresence } from "framer-motion"
 import { Plus, Edit2, Trash2, X } from "lucide-react"
 import type { Collection } from "@/lib/admin-data-context"
+import { ApiError } from "@/lib/api"
 
 export default function CollectionsPage() {
-  const { collections, products, addCollection, updateCollection, deleteCollection } =
-    useAdminData()
+  const {
+    collections,
+    collectionsLoading,
+    collectionsError,
+    refreshCollections,
+    products,
+    addCollection,
+    updateCollection,
+    deleteCollection,
+  } = useAdminData()
   const [showForm, setShowForm] = useState(false)
   const [editingCollection, setEditingCollection] = useState<Collection | null>(null)
   const [formData, setFormData] = useState<Omit<Collection, "id" | "createdAt">>({
@@ -17,6 +26,8 @@ export default function CollectionsPage() {
     heroImage: "",
     productIds: [],
   })
+  const [formError, setFormError] = useState("")
+  const [saving, setSaving] = useState(false)
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -34,15 +45,7 @@ export default function CollectionsPage() {
     }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (editingCollection) {
-      updateCollection(editingCollection.id, formData)
-      setEditingCollection(null)
-    } else {
-      addCollection(formData)
-    }
-    setShowForm(false)
+  const resetForm = () => {
     setFormData({
       name: "",
       description: "",
@@ -51,32 +54,60 @@ export default function CollectionsPage() {
     })
   }
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setFormError("")
+    setSaving(true)
+    try {
+      if (editingCollection) {
+        await updateCollection(editingCollection.id, formData)
+        setEditingCollection(null)
+      } else {
+        await addCollection(formData)
+      }
+      setShowForm(false)
+      resetForm()
+    } catch (err) {
+      setFormError(
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : "Could not save collection"
+      )
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const handleEdit = (collection: Collection) => {
+    setFormError("")
     setEditingCollection(collection)
     setFormData({
       name: collection.name,
       description: collection.description,
       heroImage: collection.heroImage,
-      productIds: collection.productIds,
+      productIds: [...collection.productIds],
     })
     setShowForm(true)
   }
 
-  const handleDelete = (id: string) => {
-    if (confirm("Are you sure you want to delete this collection?")) {
-      deleteCollection(id)
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this collection?")) return
+    try {
+      await deleteCollection(id)
+    } catch (e) {
+      alert(
+        e instanceof ApiError ? e.message : e instanceof Error ? e.message : "Failed to delete"
+      )
     }
   }
 
   const handleCloseForm = () => {
+    setFormError("")
     setShowForm(false)
     setEditingCollection(null)
-    setFormData({
-      name: "",
-      description: "",
-      heroImage: "",
-      productIds: [],
-    })
+    resetForm()
   }
 
   return (
@@ -91,19 +122,27 @@ export default function CollectionsPage() {
           <h1 className="text-4xl font-serif font-bold text-[#1A1A1A] mb-2">
             Collections
           </h1>
-          <p className="text-[#666666]">Manage product collections</p>
+          <p className="text-[#666666]">Manage product collections (synced with the API)</p>
+          {collectionsError && (
+            <div className="mt-3 flex flex-wrap items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-800">
+              <span>{collectionsError}</span>
+              <button
+                type="button"
+                onClick={() => void refreshCollections()}
+                className="font-semibold text-[#0A3D2E] underline hover:no-underline"
+              >
+                Retry
+              </button>
+            </div>
+          )}
         </div>
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => {
+            setFormError("")
             setEditingCollection(null)
-            setFormData({
-              name: "",
-              description: "",
-              heroImage: "",
-              productIds: [],
-            })
+            resetForm()
             setShowForm(true)
           }}
           className="flex items-center gap-2 bg-[#0A3D2E] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#082F23] transition-colors"
@@ -133,6 +172,7 @@ export default function CollectionsPage() {
                   {editingCollection ? "Edit Collection" : "Create New Collection"}
                 </h2>
                 <button
+                  type="button"
                   onClick={handleCloseForm}
                   className="p-2 hover:bg-[#F9F8F6] rounded-lg transition-colors"
                 >
@@ -141,6 +181,11 @@ export default function CollectionsPage() {
               </div>
 
               <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                {formError && (
+                  <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                    {formError}
+                  </div>
+                )}
                 {/* Collection Name */}
                 <div>
                   <label className="block text-sm font-semibold text-[#1A1A1A] mb-2">
@@ -228,17 +273,19 @@ export default function CollectionsPage() {
                   <button
                     type="button"
                     onClick={handleCloseForm}
-                    className="flex-1 px-6 py-2 border border-[#E8E6E3] rounded-lg font-semibold text-[#1A1A1A] hover:bg-[#F9F8F6] transition-colors"
+                    disabled={saving}
+                    className="flex-1 px-6 py-2 border border-[#E8E6E3] rounded-lg font-semibold text-[#1A1A1A] hover:bg-[#F9F8F6] transition-colors disabled:opacity-50"
                   >
                     Cancel
                   </button>
                   <motion.button
                     type="submit"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="flex-1 bg-[#0A3D2E] text-white py-2 rounded-lg font-semibold hover:bg-[#082F23] transition-colors"
+                    disabled={saving}
+                    whileHover={{ scale: saving ? 1 : 1.02 }}
+                    whileTap={{ scale: saving ? 1 : 0.98 }}
+                    className="flex-1 bg-[#0A3D2E] text-white py-2 rounded-lg font-semibold hover:bg-[#082F23] transition-colors disabled:opacity-50"
                   >
-                    {editingCollection ? "Update" : "Create"}
+                    {saving ? "Saving…" : editingCollection ? "Update" : "Create"}
                   </motion.button>
                 </div>
               </form>
@@ -253,7 +300,11 @@ export default function CollectionsPage() {
         animate={{ opacity: 1, y: 0 }}
         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
       >
-        {collections.length === 0 ? (
+        {collectionsLoading ? (
+          <div className="col-span-full bg-white rounded-lg border border-[#E8E6E3] p-12 text-center text-[#666666]">
+            Loading collections…
+          </div>
+        ) : collections.length === 0 ? (
           <div className="col-span-full bg-white rounded-lg border border-[#E8E6E3] p-12 text-center">
             <p className="text-[#666666] text-lg">No collections yet</p>
             <p className="text-[#999999] text-sm mt-2">
@@ -292,6 +343,7 @@ export default function CollectionsPage() {
                 {/* Actions */}
                 <div className="flex gap-2">
                   <motion.button
+                    type="button"
                     whileHover={{ scale: 1.05 }}
                     onClick={() => handleEdit(collection)}
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-2 border border-[#0A3D2E] text-[#0A3D2E] rounded-lg hover:bg-[#0A3D2E] hover:text-white transition-colors font-semibold text-sm"
@@ -300,6 +352,7 @@ export default function CollectionsPage() {
                     Edit
                   </motion.button>
                   <motion.button
+                    type="button"
                     whileHover={{ scale: 1.05 }}
                     onClick={() => handleDelete(collection.id)}
                     className="px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors font-semibold text-sm"

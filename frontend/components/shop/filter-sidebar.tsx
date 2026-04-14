@@ -3,7 +3,7 @@
 import { motion, AnimatePresence } from "framer-motion"
 import { X, ChevronDown } from "lucide-react"
 import { useState } from "react"
-import { categories as defaultCategories, collections, priceRanges } from "@/lib/products"
+import { categories as defaultCategories, collections as defaultCollections, priceRanges } from "@/lib/products"
 
 interface FilterSidebarProps {
   isOpen: boolean
@@ -20,6 +20,7 @@ interface FilterSidebarProps {
   setShowBestSellers: (show: boolean) => void
   hideCollectionFilter?: boolean
   availableCategories?: string[]
+  availableCollections?: string[]
 }
 
 function FilterSection({
@@ -78,8 +79,10 @@ export function FilterSidebar({
   setShowBestSellers,
   hideCollectionFilter = false,
   availableCategories,
+  availableCollections,
 }: FilterSidebarProps) {
   const displayCategories = availableCategories || defaultCategories
+  const displayCollections = availableCollections || defaultCollections
 
   const clearAllFilters = () => {
     setSelectedCategory("All")
@@ -125,7 +128,7 @@ export function FilterSidebar({
         {/* Collection */}
         {!hideCollectionFilter && (
           <FilterSection title="Collection">
-            {collections.map((collection) => (
+            {displayCollections.map((collection) => (
               <button
                 key={collection}
                 onClick={() => setSelectedCollection(collection)}
@@ -230,7 +233,7 @@ export function FilterSidebar({
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:block w-72 flex-shrink-0 pr-8">
+      <aside className="hidden lg:block w-72 shrink-0 pr-8">
         {filterContent}
       </aside>
 

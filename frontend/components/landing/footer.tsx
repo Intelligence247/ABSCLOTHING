@@ -1,9 +1,11 @@
 "use client"
 
 import { motion, useInView } from "framer-motion"
-import { useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
-import { Instagram, Facebook, Twitter, Phone, MapPin, Mail } from "lucide-react"
+import { Instagram, Youtube, Phone, MapPin, Mail } from "lucide-react"
+import { collectionNameToSlug, fetchPublicCollectionsClient, type PublicCollection } from "@/lib/collections-public"
+import { BrandLogo } from "@/components/brand/logo"
 
 const footerLinks = {
   menu: [
@@ -12,34 +14,47 @@ const footerLinks = {
     { name: "About", href: "/about" },
     { name: "Contact", href: "/contact" },
   ],
-  catalogue: [
-    { name: "Men's Collection", href: "/collections/men" },
-    { name: "Women's Collection", href: "/collections/women" },
-    { name: "Accessories", href: "/collections/accessories" },
-    { name: "Cart", href: "/cart" },
-  ],
 }
 
 export function Footer() {
   const ref = useRef(null)
   const isInView = useInView(ref, { once: true, margin: "-50px" })
+  const [collections, setCollections] = useState<PublicCollection[]>([])
+
+  useEffect(() => {
+    let cancelled = false
+    fetchPublicCollectionsClient().then((c) => {
+      if (!cancelled) setCollections(c)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const catalogueLinks =
+    collections.length > 0
+      ? collections.map((c) => ({
+          name: c.name,
+          href: `/collections/${collectionNameToSlug(c.name)}`,
+        }))
+      : [{ name: "All collections", href: "/collections" }]
 
   return (
     <footer ref={ref} className="bg-[#05120F] text-[#F9F8F6]">
       <div className="max-w-7xl mx-auto px-6 lg:px-12 py-16 lg:py-24">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 mb-16">
-          {/* Brand Column */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
             transition={{ duration: 0.6 }}
             className="lg:col-span-2"
           >
-            <h3 className="font-serif text-3xl lg:text-4xl font-semibold mb-6">
-              ABS<span className="text-[#C5A059]">.</span>
-            </h3>
+            <div className="mb-6">
+              <BrandLogo href="/" theme="gold" showBadge compact />
+            </div>
             <p className="text-[#F9F8F6]/60 mb-8 max-w-sm leading-relaxed text-sm lg:text-base">
-              ABS Clothing is a premium fashion brand that emphasizes quality craftsmanship, attention to detail, and timeless style for the modern Nigerian.
+              ABS Clothing is a premium fashion brand that emphasizes quality craftsmanship, attention to detail, and
+              timeless style for the modern Nigerian.
             </p>
             <div className="flex gap-3">
               <a
@@ -52,23 +67,31 @@ export function Footer() {
                 <Instagram className="w-5 h-5" />
               </a>
               <a
-                href="#"
+                href="https://www.youtube.com/@absclothing"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="w-10 h-10 bg-[#F9F8F6]/10 rounded-full flex items-center justify-center hover:bg-[#C5A059] transition-colors duration-300"
-                aria-label="Facebook"
+                aria-label="YouTube"
               >
-                <Facebook className="w-5 h-5" />
+                <Youtube className="w-5 h-5" />
               </a>
               <a
-                href="#"
+                href="https://x.com/sodiqabidemi23"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="w-10 h-10 bg-[#F9F8F6]/10 rounded-full flex items-center justify-center hover:bg-[#C5A059] transition-colors duration-300"
-                aria-label="Twitter"
+                aria-label="X"
               >
-                <Twitter className="w-5 h-5" />
+                <span className="font-semibold text-sm">X</span>
               </a>
+            </div>
+            <div className="mt-5 space-y-1 text-xs text-[#F9F8F6]/60">
+              <a href="https://www.tiktok.com/@absclothing1" target="_blank" rel="noopener noreferrer" className="block hover:text-[#C5A059]">TikTok: @absclothing1</a>
+              <a href="https://wa.me/2348087891756" target="_blank" rel="noopener noreferrer" className="block hover:text-[#C5A059]">WhatsApp: 08087891756</a>
+              <a href="https://www.pinterest.com/absclothing1" target="_blank" rel="noopener noreferrer" className="block hover:text-[#C5A059]">Pinterest: Absclothing1</a>
             </div>
           </motion.div>
 
-          {/* Menu Column */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
@@ -89,7 +112,6 @@ export function Footer() {
             </ul>
           </motion.div>
 
-          {/* Catalogue Column */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
@@ -97,8 +119,8 @@ export function Footer() {
           >
             <h4 className="font-semibold text-sm tracking-wider mb-6">CATALOGUE</h4>
             <ul className="space-y-3">
-              {footerLinks.catalogue.map((link) => (
-                <li key={link.name}>
+              {catalogueLinks.map((link) => (
+                <li key={link.href + link.name}>
                   <Link
                     href={link.href}
                     className="text-[#F9F8F6]/60 hover:text-[#C5A059] transition-colors text-sm"
@@ -107,10 +129,14 @@ export function Footer() {
                   </Link>
                 </li>
               ))}
+              <li>
+                <Link href="/cart" className="text-[#F9F8F6]/60 hover:text-[#C5A059] transition-colors text-sm">
+                  Cart
+                </Link>
+              </li>
             </ul>
           </motion.div>
 
-          {/* Contact Column */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
@@ -119,22 +145,21 @@ export function Footer() {
             <h4 className="font-semibold text-sm tracking-wider mb-6">CONTACT</h4>
             <ul className="space-y-4">
               <li className="flex items-start gap-3">
-                <Phone className="w-4 h-4 text-[#C5A059] mt-1 flex-shrink-0" />
+                <Phone className="w-4 h-4 text-[#C5A059] mt-1 shrink-0" />
                 <span className="text-[#F9F8F6]/60 text-sm">08087891756</span>
               </li>
               <li className="flex items-start gap-3">
-                <Mail className="w-4 h-4 text-[#C5A059] mt-1 flex-shrink-0" />
+                <Mail className="w-4 h-4 text-[#C5A059] mt-1 shrink-0" />
                 <span className="text-[#F9F8F6]/60 text-sm">info@absclothing.ng</span>
               </li>
               <li className="flex items-start gap-3">
-                <MapPin className="w-4 h-4 text-[#C5A059] mt-1 flex-shrink-0" />
-                <span className="text-[#F9F8F6]/60 text-sm">2 Mogaji Compound, Tanke Iledu, Kwara State</span>
+                <MapPin className="w-4 h-4 text-[#C5A059] mt-1 shrink-0" />
+                <span className="text-[#F9F8F6]/60 text-sm">Tanke ilorin Kwara state</span>
               </li>
             </ul>
           </motion.div>
         </div>
 
-        {/* Bottom Bar */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={isInView ? { opacity: 1 } : { opacity: 0 }}
@@ -159,7 +184,6 @@ export function Footer() {
           </div>
         </motion.div>
 
-        {/* Large Background Text */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={isInView ? { opacity: 0.03 } : { opacity: 0 }}

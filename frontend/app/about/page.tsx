@@ -14,17 +14,33 @@ export default function AboutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pt-20">
       <Navbar />
 
       {/* Hero Section */}
-      <div className="relative h-96 bg-gradient-to-b from-primary/80 to-primary/40 flex items-center overflow-hidden">
+      <section className="relative h-[40vh] min-h-[300px] bg-[#05120F] flex items-center overflow-hidden">
+        <div className="absolute inset-0 opacity-5">
+          <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <pattern id="about-grid" width="10" height="10" patternUnits="userSpaceOnUse">
+              <path d="M 10 0 L 0 0 0 10" fill="none" stroke="currentColor" strokeWidth="0.5" />
+            </pattern>
+            <rect width="100%" height="100%" fill="url(#about-grid)" />
+          </svg>
+        </div>
+        <motion.span
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1 }}
+          className="absolute inset-0 flex items-center justify-center text-[18vw] font-serif tracking-wider stroke-text select-none"
+        >
+          ABOUT
+        </motion.span>
         <div className="container mx-auto px-4 relative z-10">
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="text-5xl md:text-6xl font-serif font-bold text-primary-foreground mb-4"
+            className="text-4xl md:text-6xl font-serif font-bold text-[#F9F8F6] mb-4"
           >
             About ABS Clothing
           </motion.h1>
@@ -32,13 +48,12 @@ export default function AboutPage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-primary-foreground/80 text-lg md:text-xl max-w-2xl"
+            className="text-[#F9F8F6]/75 text-lg md:text-xl max-w-2xl"
           >
             Crafting heritage fashion for the modern African
           </motion.p>
         </div>
-        <div className="absolute inset-0 stroke-text text-8xl font-serif font-bold opacity-10">ABOUT</div>
-      </div>
+      </section>
 
       <div className="container mx-auto px-4 py-20 space-y-24">
         {/* Brand Story */}
@@ -142,7 +157,7 @@ export default function AboutPage() {
               </div>
               <div>
                 <h3 className="text-xl font-serif mb-2">Business Address</h3>
-                <p className="text-foreground/70">2 Mogaji Compound, Tanke Iledu, Kwara State, Nigeria</p>
+                <p className="text-foreground/70">Tanke ilorin Kwara state</p>
               </div>
               <div>
                 <h3 className="text-xl font-serif mb-2">Business Nature</h3>
@@ -153,7 +168,7 @@ export default function AboutPage() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.8, duration: 0.6 }}
-              className="relative aspect-[3/4] overflow-hidden rounded-lg shadow-2xl"
+              className="relative aspect-3/4 overflow-hidden rounded-lg shadow-2xl"
             >
               <Image
                 src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-09ACiGkhg8yO2Tmhwo25QdAafGyeNH.png"

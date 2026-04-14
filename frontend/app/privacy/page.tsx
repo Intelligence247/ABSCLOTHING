@@ -77,7 +77,7 @@ export default function PrivacyPage() {
             <div className="bg-muted p-6 space-y-2">
               <p><strong>Email:</strong> info@absclothing.com</p>
               <p><strong>Phone:</strong> 08087891756</p>
-              <p><strong>Address:</strong> 2 Mogaji Compound, Tanke Iledu, Kwara State, Nigeria</p>
+              <p><strong>Address:</strong> Tanke ilorin Kwara state</p>
             </div>
           </section>
 

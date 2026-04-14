@@ -15,8 +15,13 @@ const chartData = [
 ]
 
 export default function AdminDashboard() {
-  const { getTotalRevenue, getTotalOrders, getTotalProducts, orders, products } =
-    useAdminData()
+  const {
+    getTotalRevenue,
+    getTotalOrders,
+    getTotalProducts,
+    orders,
+    contactMessages,
+  } = useAdminData()
 
   const stats = [
     {
@@ -47,6 +52,13 @@ export default function AdminDashboard() {
       color: "bg-slate-50",
       iconColor: "text-[#1A1A1A]",
     },
+    {
+      label: "Unread Messages",
+      value: contactMessages.filter((m) => m.status === "new").length,
+      icon: Users,
+      color: "bg-rose-50",
+      iconColor: "text-rose-700",
+    },
   ]
 
   return (
@@ -66,7 +78,7 @@ export default function AdminDashboard() {
       </motion.div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
         {stats.map((stat, idx) => {
           const Icon = stat.icon
           return (
@@ -206,10 +218,12 @@ export default function AdminDashboard() {
                         order.status === "delivered"
                           ? "bg-green-100 text-green-700"
                           : order.status === "shipped"
-                          ? "bg-blue-100 text-blue-700"
-                          : order.status === "processing"
-                          ? "bg-yellow-100 text-yellow-700"
-                          : "bg-gray-100 text-gray-700"
+                            ? "bg-blue-100 text-blue-700"
+                            : order.status === "processing"
+                              ? "bg-yellow-100 text-yellow-700"
+                              : order.status === "cancelled"
+                                ? "bg-red-100 text-red-700"
+                                : "bg-gray-100 text-gray-700"
                       }`}
                     >
                       {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
@@ -221,6 +235,7 @@ export default function AdminDashboard() {
           </table>
         </div>
       </motion.div>
+
     </div>
   )
 }

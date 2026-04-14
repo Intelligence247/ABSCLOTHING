@@ -6,6 +6,7 @@ import Link from "next/link"
 import { Heart, Eye, ShoppingBag } from "lucide-react"
 import { useState } from "react"
 import type { Product } from "@/lib/products"
+import { useCart } from "@/lib/cart-context"
 
 interface ProductCardProps {
   product: Product
@@ -13,9 +14,22 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, index }: ProductCardProps) {
+  const { addItem } = useCart()
   const [isHovered, setIsHovered] = useState(false)
   const [isLiked, setIsLiked] = useState(false)
   const [selectedColor, setSelectedColor] = useState(0)
+  const [justAdded, setJustAdded] = useState(false)
+
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const color = product.colors[selectedColor]?.name ?? product.colors[0]?.name ?? ""
+    const size = product.sizes[0] ?? "One Size"
+    if (!color) return
+    addItem(product, color, size, 1)
+    setJustAdded(true)
+    window.setTimeout(() => setJustAdded(false), 1600)
+  }
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("en-NG", {
@@ -77,13 +91,8 @@ export function ProductCard({ product, index }: ProductCardProps) {
           <Heart className={`w-5 h-5 ${isLiked ? "fill-current" : ""}`} />
         </motion.button>
 
-        {/* Quick Actions */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: isHovered ? 1 : 0, y: isHovered ? 0 : 20 }}
-          transition={{ duration: 0.3 }}
-          className="absolute bottom-4 left-4 right-4 flex gap-2"
-        >
+        {/* Quick actions: always visible below lg; hover on large screens */}
+        <div className="absolute bottom-4 left-4 right-4 flex gap-2 opacity-0 pointer-events-none transition-opacity duration-300 group-hover:opacity-100 group-hover:pointer-events-auto max-lg:opacity-100 max-lg:pointer-events-auto">
           <Link
             href={`/shop/${product.id}`}
             className="flex-1 flex items-center justify-center gap-2 bg-white/95 backdrop-blur-sm text-[#1A1A1A] py-3 text-xs font-semibold tracking-wider hover:bg-[#0A3D2E] hover:text-white transition-colors"
@@ -91,13 +100,15 @@ export function ProductCard({ product, index }: ProductCardProps) {
             <Eye className="w-4 h-4" />
             QUICK VIEW
           </Link>
-          <Link
-            href={`/shop/${product.id}`}
+          <button
+            type="button"
+            onClick={handleAddToCart}
+            aria-label="Add to cart"
             className="w-12 h-12 flex items-center justify-center bg-[#0A3D2E] text-white hover:bg-[#C5A059] hover:text-[#05120F] transition-colors"
           >
             <ShoppingBag className="w-5 h-5" />
-          </Link>
-        </motion.div>
+          </button>
+        </div>
       </div>
 
       {/* Product Info */}
@@ -159,6 +170,14 @@ export function ProductCard({ product, index }: ProductCardProps) {
             </span>
           )}
         </div>
+
+        <button
+          type="button"
+          onClick={handleAddToCart}
+          className="w-full py-2.5 text-xs font-semibold uppercase tracking-wider border border-[#0A3D2E] text-[#0A3D2E] hover:bg-[#0A3D2E] hover:text-white transition-colors"
+        >
+          {justAdded ? "Added to cart" : "Add to cart"}
+        </button>
       </div>
     </motion.div>
   )

@@ -1,15 +1,24 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
-import { Save, Bell, Lock, Palette } from "lucide-react"
+import { Save, Bell, Lock, Palette, Landmark } from "lucide-react"
+import { API_BASE_URL, ApiError, getAuthToken } from "@/lib/api"
+import { useAdmin } from "@/lib/admin-context"
+import {
+  fetchAdminPaymentSettings,
+  updateAdminPaymentSettings,
+} from "@/lib/admin-store-api"
+import type { StorePaymentInfo } from "@/lib/store-api"
 
 export default function SettingsPage() {
+  const { isAuthenticated, isLoading: adminBootstrapping } = useAdmin()
+
   const [formData, setFormData] = useState({
     storeName: "ABS Clothing",
     storeEmail: "admin@absclothing.com",
     storePhone: "08087891756",
-    businessAddress: "2 Mogaji Compound, Tanke Iledu, Kwara State",
+    businessAddress: "Tanke ilorin Kwara state",
     currency: "NGN",
     taxRate: "0",
     shippingCost: "1000",
@@ -24,6 +33,106 @@ export default function SettingsPage() {
   })
 
   const [saved, setSaved] = useState(false)
+
+  const [bankForm, setBankForm] = useState<StorePaymentInfo>({
+    bankName: "",
+    accountName: "",
+    accountNumber: "",
+    referenceHint: "",
+  })
+  const [effectiveBank, setEffectiveBank] = useState<StorePaymentInfo | null>(null)
+  const [adminPassword, setAdminPassword] = useState("")
+  const [bankLoading, setBankLoading] = useState(true)
+  const [bankSaving, setBankSaving] = useState(false)
+  const [bankError, setBankError] = useState("")
+  const [bankSaved, setBankSaved] = useState(false)
+
+  useEffect(() => {
+    if (adminBootstrapping) return
+
+    if (!isAuthenticated) {
+      setBankLoading(false)
+      setBankError("You must be signed in as an admin to load bank settings.")
+      return
+    }
+
+    if (typeof window !== "undefined" && !getAuthToken()) {
+      setBankLoading(false)
+      setBankError(
+        "No JWT in this browser (key abs_admin_token). Sign out and sign in again at /admin/login."
+      )
+      return
+    }
+
+    let cancelled = false
+    setBankLoading(true)
+    setBankError("")
+
+    fetchAdminPaymentSettings()
+      .then((data) => {
+        if (cancelled) return
+        setBankForm({ ...data.stored })
+        setEffectiveBank(data.effective)
+      })
+      .catch((err) => {
+        if (cancelled) return
+        if (err instanceof ApiError) {
+          const hint =
+            err.status === 401
+              ? " Try signing out and back in. If you changed JWT_SECRET in .env, old tokens are invalid."
+              : err.status === 404
+                ? ` No route at ${API_BASE_URL}/api/store/admin/payment-settings — restart the backend from the latest code.`
+                : ""
+          setBankError(`${err.message} (HTTP ${err.status})${hint}`)
+        } else if (err instanceof TypeError) {
+          setBankError(
+            `Network error reaching ${API_BASE_URL}. Check NEXT_PUBLIC_API_URL in frontend/.env and that the API is running.`
+          )
+        } else {
+          setBankError(err instanceof Error ? err.message : "Could not load bank settings.")
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setBankLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [isAuthenticated, adminBootstrapping])
+
+  const handleBankFieldChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target
+    setBankForm((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleBankSave = async () => {
+    setBankError("")
+    setBankSaved(false)
+    if (!adminPassword.trim()) {
+      setBankError("Enter your current admin password to save bank details.")
+      return
+    }
+    setBankSaving(true)
+    try {
+      const res = await updateAdminPaymentSettings({
+        password: adminPassword,
+        bankName: bankForm.bankName,
+        accountName: bankForm.accountName,
+        accountNumber: bankForm.accountNumber,
+        referenceHint: bankForm.referenceHint,
+      })
+      setBankForm({ ...res.stored })
+      setEffectiveBank(res.effective)
+      setAdminPassword("")
+      setBankSaved(true)
+      setTimeout(() => setBankSaved(false), 4000)
+    } catch (err) {
+      setBankError(err instanceof ApiError ? err.message : "Could not save bank settings.")
+    } finally {
+      setBankSaving(false)
+    }
+  }
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -76,6 +185,130 @@ export default function SettingsPage() {
           Settings saved successfully!
         </motion.div>
       )}
+
+      {/* Bank transfer — own section (not inside mock store form) */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white rounded-lg border border-[#E8E6E3] p-8 mb-6"
+      >
+        <div className="flex items-center gap-3 mb-2">
+          <Landmark className="w-6 h-6 text-[#0A3D2E]" />
+          <h2 className="text-2xl font-serif font-bold text-[#1A1A1A]">Bank transfer (checkout)</h2>
+        </div>
+        <p className="text-sm text-[#666666] mb-6">
+          Shown on the storefront checkout and order success page. Leave a field empty to fall back to the same
+          variable in <span className="font-mono text-xs">backend/.env</span> (e.g.{" "}
+          <span className="font-mono text-xs">BANK_ACCOUNT_NUMBER</span>).
+        </p>
+
+        {bankLoading ? (
+          <p className="text-sm text-[#666666]">Loading bank settings…</p>
+        ) : (
+          <div className="space-y-6">
+            {bankSaved && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-green-800 font-medium">
+                Bank details saved.
+              </div>
+            )}
+            {bankError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800">{bankError}</div>
+            )}
+
+            {effectiveBank && (
+              <div className="rounded-lg border border-[#E8E6E3] bg-[#F9F8F6] p-4 text-sm">
+                <p className="font-semibold text-[#1A1A1A] mb-2">Customer preview (merged)</p>
+                <p className="text-[#666666]">
+                  Bank: <span className="text-[#1A1A1A]">{effectiveBank.bankName || "—"}</span>
+                </p>
+                <p className="text-[#666666]">
+                  Name: <span className="text-[#1A1A1A]">{effectiveBank.accountName || "—"}</span>
+                </p>
+                <p className="text-[#666666]">
+                  Account:{" "}
+                  <span className="font-mono text-[#1A1A1A]">{effectiveBank.accountNumber || "—"}</span>
+                </p>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-semibold text-[#1A1A1A] mb-2">Bank name</label>
+                <input
+                  type="text"
+                  name="bankName"
+                  value={bankForm.bankName}
+                  onChange={handleBankFieldChange}
+                  className="w-full px-4 py-2 border border-[#E8E6E3] rounded-lg focus:outline-none focus:border-[#0A3D2E] focus:ring-2 focus:ring-[#0A3D2E]/20"
+                  autoComplete="off"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-[#1A1A1A] mb-2">Account name</label>
+                <input
+                  type="text"
+                  name="accountName"
+                  value={bankForm.accountName}
+                  onChange={handleBankFieldChange}
+                  className="w-full px-4 py-2 border border-[#E8E6E3] rounded-lg focus:outline-none focus:border-[#0A3D2E] focus:ring-2 focus:ring-[#0A3D2E]/20"
+                  autoComplete="off"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-semibold text-[#1A1A1A] mb-2">Account number</label>
+                <input
+                  type="text"
+                  name="accountNumber"
+                  value={bankForm.accountNumber}
+                  onChange={handleBankFieldChange}
+                  className="w-full px-4 py-2 border border-[#E8E6E3] rounded-lg font-mono focus:outline-none focus:border-[#0A3D2E] focus:ring-2 focus:ring-[#0A3D2E]/20"
+                  autoComplete="off"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-semibold text-[#1A1A1A] mb-2">
+                  Payment reference hint (optional)
+                </label>
+                <textarea
+                  name="referenceHint"
+                  value={bankForm.referenceHint}
+                  onChange={handleBankFieldChange}
+                  rows={2}
+                  className="w-full px-4 py-2 border border-[#E8E6E3] rounded-lg focus:outline-none focus:border-[#0A3D2E] focus:ring-2 focus:ring-[#0A3D2E]/20 text-sm"
+                  placeholder="Shown to customers under bank details"
+                />
+              </div>
+            </div>
+
+            <div className="border-t border-[#E8E6E3] pt-6">
+              <label className="block text-sm font-semibold text-[#1A1A1A] mb-2 flex items-center gap-2">
+                <Lock className="w-4 h-4 text-[#0A3D2E]" />
+                Current admin password
+              </label>
+              <p className="text-xs text-[#666666] mb-2">
+                Required every time you save these bank fields (not stored).
+              </p>
+              <input
+                type="password"
+                value={adminPassword}
+                onChange={(e) => setAdminPassword(e.target.value)}
+                className="w-full max-w-md px-4 py-2 border border-[#E8E6E3] rounded-lg focus:outline-none focus:border-[#0A3D2E] focus:ring-2 focus:ring-[#0A3D2E]/20"
+                autoComplete="current-password"
+                placeholder="Your login password"
+              />
+            </div>
+
+            <button
+              type="button"
+              disabled={bankSaving}
+              onClick={handleBankSave}
+              className="inline-flex items-center gap-2 bg-[#0A3D2E] text-white px-6 py-2.5 rounded-lg font-semibold text-sm hover:bg-[#082F23] disabled:opacity-50"
+            >
+              {bankSaving ? "Saving…" : "Save bank details"}
+            </button>
+          </div>
+        )}
+      </motion.div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Store Settings */}

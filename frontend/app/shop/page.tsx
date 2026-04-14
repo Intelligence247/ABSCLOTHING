@@ -1,13 +1,14 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { Navbar } from "@/components/landing/navbar"
 import { Footer } from "@/components/landing/footer"
 import { FilterSidebar } from "@/components/shop/filter-sidebar"
 import { ProductGrid } from "@/components/shop/product-grid"
 import { ShopHeader } from "@/components/shop/shop-header"
-import { products as allProducts } from "@/lib/products"
+import type { Product } from "@/lib/products"
+import { fetchProducts } from "@/lib/product-api"
 
 export default function ShopPage() {
   const [isFilterOpen, setIsFilterOpen] = useState(false)
@@ -21,54 +22,64 @@ export default function ShopPage() {
   const [showBestSellers, setShowBestSellers] = useState(false)
   const [sortBy, setSortBy] = useState("featured")
   const [gridView, setGridView] = useState<"grid" | "large">("grid")
+  const [products, setProducts] = useState<Product[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState("")
+  const [availableCategories, setAvailableCategories] = useState<string[]>(["All"])
+  const [availableCollections, setAvailableCollections] = useState<string[]>(["All"])
 
-  // Filter and sort products
-  const filteredProducts = useMemo(() => {
-    let result = [...allProducts]
-
-    // Apply category filter
-    if (selectedCategory !== "All") {
-      result = result.filter((p) => p.category === selectedCategory)
+  useEffect(() => {
+    let cancelled = false
+    const loadFilterOptions = async () => {
+      try {
+        const base = await fetchProducts({ sort: "featured" })
+        if (cancelled) return
+        const categories = ["All", ...Array.from(new Set(base.map((p) => p.category).filter(Boolean)))]
+        const collections = ["All", ...Array.from(new Set(base.map((p) => p.collection).filter(Boolean)))]
+        setAvailableCategories(categories)
+        setAvailableCollections(collections)
+      } catch {
+        if (!cancelled) {
+          setAvailableCategories(["All"])
+          setAvailableCollections(["All"])
+        }
+      }
     }
-
-    // Apply collection filter
-    if (selectedCollection !== "All") {
-      result = result.filter((p) => p.collection === selectedCollection)
+    loadFilterOptions()
+    return () => {
+      cancelled = true
     }
+  }, [])
 
-    // Apply price range filter
-    result = result.filter(
-      (p) => p.price >= selectedPriceRange.min && p.price <= selectedPriceRange.max
-    )
-
-    // Apply quick filters
-    if (showNewOnly) {
-      result = result.filter((p) => p.isNew)
+  useEffect(() => {
+    let cancelled = false
+    const run = async () => {
+      setIsLoading(true)
+      setError("")
+      try {
+        const result = await fetchProducts({
+          collection: selectedCollection,
+          category: selectedCategory,
+          isNew: showNewOnly ? true : undefined,
+          isBestSeller: showBestSellers ? true : undefined,
+          minPrice: selectedPriceRange.min,
+          maxPrice: selectedPriceRange.max,
+          sort: sortBy,
+        })
+        if (!cancelled) setProducts(result)
+      } catch (err) {
+        if (!cancelled) {
+          setProducts([])
+          setError(err instanceof Error ? err.message : "Could not load products")
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false)
+      }
     }
-    if (showBestSellers) {
-      result = result.filter((p) => p.isBestSeller)
+    run()
+    return () => {
+      cancelled = true
     }
-
-    // Apply sorting
-    switch (sortBy) {
-      case "newest":
-        result = result.filter((p) => p.isNew).concat(result.filter((p) => !p.isNew))
-        break
-      case "price-asc":
-        result.sort((a, b) => a.price - b.price)
-        break
-      case "price-desc":
-        result.sort((a, b) => b.price - a.price)
-        break
-      case "best-selling":
-        result = result.filter((p) => p.isBestSeller).concat(result.filter((p) => !p.isBestSeller))
-        break
-      default:
-        // Featured - keep original order
-        break
-    }
-
-    return result
   }, [
     selectedCategory,
     selectedCollection,
@@ -79,7 +90,7 @@ export default function ShopPage() {
   ])
 
   return (
-    <main className="min-h-screen bg-[#F9F8F6]">
+    <main className="min-h-screen bg-[#F9F8F6] pt-20">
       <Navbar />
 
       {/* Hero Banner */}
@@ -124,7 +135,7 @@ export default function ShopPage() {
       <section className="px-6 lg:px-12 py-12 lg:py-20">
         <div className="max-w-7xl mx-auto">
           <ShopHeader
-            totalProducts={filteredProducts.length}
+            totalProducts={products.length}
             sortBy={sortBy}
             setSortBy={setSortBy}
             gridView={gridView}
@@ -136,6 +147,8 @@ export default function ShopPage() {
             <FilterSidebar
               isOpen={isFilterOpen}
               onClose={() => setIsFilterOpen(false)}
+              availableCategories={availableCategories}
+              availableCollections={availableCollections}
               selectedCategory={selectedCategory}
               setSelectedCategory={setSelectedCategory}
               selectedCollection={selectedCollection}
@@ -148,11 +161,17 @@ export default function ShopPage() {
               setShowBestSellers={setShowBestSellers}
             />
 
-            <ProductGrid products={filteredProducts} />
+            {error ? (
+              <div className="flex-1 text-center text-red-600 py-16">{error}</div>
+            ) : isLoading ? (
+              <div className="flex-1 text-center py-16 text-[#666666]">Loading products...</div>
+            ) : (
+              <ProductGrid products={products} gridView={gridView} />
+            )}
           </div>
 
           {/* Pagination Placeholder */}
-          {filteredProducts.length > 0 && (
+          {!isLoading && !error && products.length > 0 && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}

@@ -1,0 +1,515 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "ABS Clothing API",
+    "version": "1.0.1",
+    "description": "REST API for ABS Clothing storefront and admin. JWT: use **Authorize** with `Bearer <token>` from `/api/users/login` or register responses.\n\n**Store / bank checkout:** see tag **Store** — `GET /api/store/payment-info` (public) and `GET|PUT /api/store/admin/payment-settings` (admin Bearer).\n\n**Mark order paid:** either send header `x-webhook-secret` (when `PAYMENT_WEBHOOK_SECRET` is set) or authenticate as the order owner or an admin."
+  },
+  "tags": [
+    { "name": "Health", "description": "Service status" },
+    { "name": "Products", "description": "Catalog (public read; admin write)" },
+    { "name": "Users", "description": "Auth and user management" },
+    { "name": "Collections", "description": "Product groupings" },
+    { "name": "Orders", "description": "Checkout and order lifecycle" },
+    { "name": "Upload", "description": "Image upload (admin)" },
+    { "name": "Store", "description": "Checkout bank transfer details (public read; admin write with password)" }
+  ],
+  "servers": [{ "url": "http://localhost:5050", "description": "Overridden at runtime from BACKEND_PUBLIC_URL / PORT" }],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "JWT from login or register"
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": { "message": { "type": "string" }, "stack": { "type": "string", "nullable": true } }
+      },
+      "ProductInput": {
+        "type": "object",
+        "required": ["name", "price", "description", "image", "category", "collectionName"],
+        "properties": {
+          "name": { "type": "string" },
+          "price": { "type": "number" },
+          "originalPrice": { "type": "number" },
+          "discount": { "type": "string" },
+          "description": { "type": "string" },
+          "image": { "type": "string" },
+          "category": { "type": "string" },
+          "collectionName": { "type": "string", "description": "Or use `collection` (alias)" },
+          "collection": { "type": "string", "description": "Alias for collectionName" },
+          "sizes": { "type": "array", "items": { "type": "string" } },
+          "colors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["name", "hex"],
+              "properties": { "name": { "type": "string" }, "hex": { "type": "string" } }
+            }
+          },
+          "isNewProduct": { "type": "boolean" },
+          "isNew": { "type": "boolean", "description": "Alias for isNewProduct" },
+          "isBestSeller": { "type": "boolean" }
+        }
+      },
+      "UserRegister": {
+        "type": "object",
+        "required": ["name", "email", "password"],
+        "properties": {
+          "name": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "password": { "type": "string", "format": "password" }
+        }
+      },
+      "UserLogin": {
+        "type": "object",
+        "required": ["email", "password"],
+        "properties": {
+          "email": { "type": "string" },
+          "password": { "type": "string", "format": "password" }
+        }
+      },
+      "RegisterAdmin": {
+        "type": "object",
+        "required": ["name", "email", "password", "adminSecret"],
+        "properties": {
+          "name": { "type": "string" },
+          "email": { "type": "string" },
+          "password": { "type": "string", "format": "password" },
+          "adminSecret": { "type": "string", "description": "Must match ADMIN_REGISTRATION_SECRET" }
+        }
+      },
+      "AuthResponse": {
+        "type": "object",
+        "properties": {
+          "_id": { "type": "string" },
+          "name": { "type": "string" },
+          "email": { "type": "string" },
+          "isAdmin": { "type": "boolean" },
+          "token": { "type": "string" }
+        }
+      },
+      "CollectionInput": {
+        "type": "object",
+        "required": ["name", "description", "heroImage"],
+        "properties": {
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "heroImage": { "type": "string" },
+          "productIds": { "type": "array", "items": { "type": "string" } }
+        }
+      },
+      "OrderItemCreate": {
+        "type": "object",
+        "required": ["product", "qty"],
+        "properties": {
+          "product": { "type": "string", "description": "MongoDB ObjectId of product" },
+          "productId": { "type": "string", "description": "Alias for product" },
+          "qty": { "type": "integer", "minimum": 1 },
+          "color": { "type": "string" },
+          "size": { "type": "string" }
+        }
+      },
+      "ShippingAddress": {
+        "type": "object",
+        "required": ["address", "city", "postalCode", "country"],
+        "properties": {
+          "address": { "type": "string" },
+          "city": { "type": "string" },
+          "postalCode": { "type": "string" },
+          "country": { "type": "string" }
+        }
+      },
+      "CreateOrder": {
+        "type": "object",
+        "required": ["orderItems", "shippingAddress", "paymentMethod", "customerName", "email"],
+        "properties": {
+          "orderItems": { "type": "array", "items": { "$ref": "#/components/schemas/OrderItemCreate" } },
+          "shippingAddress": { "$ref": "#/components/schemas/ShippingAddress" },
+          "paymentMethod": { "type": "string" },
+          "customerName": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "taxPrice": { "type": "number", "description": "Optional; defaults to 0. Totals are computed server-side." }
+        }
+      },
+      "PaymentResultBody": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "status": { "type": "string" },
+          "update_time": { "type": "string" },
+          "email_address": { "type": "string" }
+        }
+      },
+      "UpdateOrderStatus": {
+        "type": "object",
+        "required": ["status"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["pending", "processing", "shipped", "delivered", "cancelled"]
+          }
+        }
+      },
+      "UpdateUserAdmin": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "email": { "type": "string" },
+          "isAdmin": { "type": "boolean" }
+        }
+      },
+      "StorePaymentInfo": {
+        "type": "object",
+        "properties": {
+          "bankName": { "type": "string" },
+          "accountName": { "type": "string" },
+          "accountNumber": { "type": "string" },
+          "referenceHint": { "type": "string" }
+        },
+        "description": "Merged from database (if set) then environment variables."
+      },
+      "AdminPaymentSettingsResponse": {
+        "type": "object",
+        "properties": {
+          "stored": { "$ref": "#/components/schemas/StorePaymentInfo", "description": "Values saved in DB; empty string means use env for that field" },
+          "effective": { "$ref": "#/components/schemas/StorePaymentInfo", "description": "What customers see on checkout" }
+        }
+      },
+      "AdminPaymentSettingsUpdate": {
+        "type": "object",
+        "required": ["password"],
+        "properties": {
+          "password": { "type": "string", "format": "password", "description": "Current logged-in admin password" },
+          "bankName": { "type": "string" },
+          "accountName": { "type": "string" },
+          "accountNumber": { "type": "string" },
+          "referenceHint": { "type": "string" }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Health check",
+        "responses": { "200": { "description": "Plain text", "content": { "text/plain": { "schema": { "type": "string", "example": "API is running..." } } } } }
+      }
+    },
+    "/health-check": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Health check (JSON)",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "ok" },
+                    "service": { "type": "string", "example": "abs-clothing-api" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/products": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "List products",
+        "parameters": [
+          { "name": "collection", "in": "query", "schema": { "type": "string" }, "description": "e.g. Men, Women, Accessories" },
+          { "name": "category", "in": "query", "schema": { "type": "string" } },
+          { "name": "isNew", "in": "query", "schema": { "type": "string", "enum": ["true", "false"] } },
+          { "name": "isBestSeller", "in": "query", "schema": { "type": "string", "enum": ["true", "false"] } },
+          { "name": "minPrice", "in": "query", "schema": { "type": "number" } },
+          { "name": "maxPrice", "in": "query", "schema": { "type": "number" } },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["featured", "newest", "price-asc", "price-desc", "best-selling"],
+              "default": "featured"
+            }
+          }
+        ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "type": "array", "items": { "type": "object" } } } } } }
+      },
+      "post": {
+        "tags": ["Products"],
+        "summary": "Create product",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProductInput" } } }
+        },
+        "responses": { "201": { "description": "Created" }, "401": { "description": "Unauthorized" } }
+      }
+    },
+    "/api/products/{id}": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "Get product by ID",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "OK" }, "404": { "description": "Not found" } }
+      },
+      "put": {
+        "tags": ["Products"],
+        "summary": "Update product",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "content": { "application/json": { "schema": { "type": "object", "allOf": [{ "$ref": "#/components/schemas/ProductInput" }] } } }
+        },
+        "responses": { "200": { "description": "OK" }, "404": { "description": "Not found" } }
+      },
+      "delete": {
+        "tags": ["Products"],
+        "summary": "Delete product",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "OK" }, "404": { "description": "Not found" } }
+      }
+    },
+    "/api/users": {
+      "post": {
+        "tags": ["Users"],
+        "summary": "Register user",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UserRegister" } } } },
+        "responses": { "201": { "description": "Created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthResponse" } } } }, "400": { "description": "User exists" } }
+      },
+      "get": {
+        "tags": ["Users"],
+        "summary": "List all users (admin)",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "OK" }, "401": { "description": "Unauthorized" } }
+      }
+    },
+    "/api/users/login": {
+      "post": {
+        "tags": ["Users"],
+        "summary": "Login",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UserLogin" } } } },
+        "responses": { "200": { "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthResponse" } } } }, "401": { "description": "Invalid credentials" } }
+      }
+    },
+    "/api/users/register-admin": {
+      "post": {
+        "tags": ["Users"],
+        "summary": "Register admin (secret required)",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RegisterAdmin" } } } },
+        "responses": { "201": { "description": "Created" }, "401": { "description": "Invalid secret" } }
+      }
+    },
+    "/api/users/profile": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Current user profile",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "OK" }, "401": { "description": "Unauthorized" } }
+      }
+    },
+    "/api/users/{id}": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Get user by ID (admin)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "OK" }, "404": { "description": "Not found" } }
+      },
+      "put": {
+        "tags": ["Users"],
+        "summary": "Update user (admin)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": { "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UpdateUserAdmin" } } } },
+        "responses": { "200": { "description": "OK" } }
+      },
+      "delete": {
+        "tags": ["Users"],
+        "summary": "Delete user (admin)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/api/collections": {
+      "get": {
+        "tags": ["Collections"],
+        "summary": "List collections",
+        "responses": { "200": { "description": "OK" } }
+      },
+      "post": {
+        "tags": ["Collections"],
+        "summary": "Create collection",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CollectionInput" } } } },
+        "responses": { "201": { "description": "Created" } }
+      }
+    },
+    "/api/collections/{id}": {
+      "get": {
+        "tags": ["Collections"],
+        "summary": "Get collection (products populated)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "OK" }, "404": { "description": "Not found" } }
+      },
+      "put": {
+        "tags": ["Collections"],
+        "summary": "Update collection",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": { "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CollectionInput" } } } },
+        "responses": { "200": { "description": "OK" } }
+      },
+      "delete": {
+        "tags": ["Collections"],
+        "summary": "Delete collection",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/api/orders": {
+      "post": {
+        "tags": ["Orders"],
+        "summary": "Create order (guest or optional Bearer)",
+        "description": "Prices and shipping are computed server-side. Optional `Authorization: Bearer` attaches order to user.",
+        "parameters": [],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CreateOrder" } } } },
+        "responses": { "201": { "description": "Created" }, "400": { "description": "Bad request" } }
+      },
+      "get": {
+        "tags": ["Orders"],
+        "summary": "List all orders (admin)",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/api/orders/myorders": {
+      "get": {
+        "tags": ["Orders"],
+        "summary": "My orders",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/api/orders/{id}": {
+      "get": {
+        "tags": ["Orders"],
+        "summary": "Get order (owner or admin)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "OK" }, "403": { "description": "Forbidden" }, "404": { "description": "Not found" } }
+      },
+      "delete": {
+        "tags": ["Orders"],
+        "summary": "Delete order (admin)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/api/orders/{id}/pay": {
+      "put": {
+        "tags": ["Orders"],
+        "summary": "Mark order paid",
+        "description": "Use `x-webhook-secret` when PAYMENT_WEBHOOK_SECRET is set, or Bearer token (order owner or admin).",
+        "parameters": [
+          {
+            "name": "x-webhook-secret",
+            "in": "header",
+            "required": false,
+            "schema": { "type": "string" }
+          },
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": { "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PaymentResultBody" } } } },
+        "responses": { "200": { "description": "OK" }, "401": { "description": "Unauthorized" } }
+      }
+    },
+    "/api/orders/{id}/status": {
+      "put": {
+        "tags": ["Orders"],
+        "summary": "Update order status (admin)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UpdateOrderStatus" } } } },
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/api/upload": {
+      "post": {
+        "tags": ["Upload"],
+        "summary": "Upload image to Cloudinary",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["image"],
+                "properties": { "image": { "type": "string", "format": "binary" } }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Returns image URL" }, "400": { "description": "No file" } }
+      }
+    },
+    "/api/store/payment-info": {
+      "get": {
+        "tags": ["Store"],
+        "summary": "Public bank transfer details for checkout",
+        "description": "Merged from `StoreSettings` in MongoDB (per-field when non-empty) then `BANK_*` environment variables.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/StorePaymentInfo" } } }
+          }
+        }
+      }
+    },
+    "/api/store/admin/payment-settings": {
+      "get": {
+        "tags": ["Store"],
+        "summary": "Get bank settings (admin)",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Stored vs effective values",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AdminPaymentSettingsResponse" } } }
+          },
+          "401": { "description": "Unauthorized" }
+        }
+      },
+      "put": {
+        "tags": ["Store"],
+        "summary": "Update bank settings (admin)",
+        "description": "Requires the current admin user's password in the body. JWT must be an admin account.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AdminPaymentSettingsUpdate" } } }
+        },
+        "responses": {
+          "200": { "description": "Saved" },
+          "400": { "description": "Missing password" },
+          "401": { "description": "Invalid password or not admin" }
+        }
+      }
+    }
+  }
+}
