@@ -9,11 +9,8 @@ import { ShopHeader } from "@/components/shop/shop-header"
 import { FilterSidebar } from "@/components/shop/filter-sidebar"
 import { ProductGrid } from "@/components/shop/product-grid"
 import { fetchProducts } from "@/lib/product-api"
-import {
-  collectionNameToSlug,
-  fetchPublicCollectionsClient,
-  type PublicCollection,
-} from "@/lib/collections-public"
+import { collectionNameToSlug } from "@/lib/collections-public"
+import { usePublicCollections } from "@/lib/public-collections-context"
 
 export default function CollectionBySlugPage() {
   const params = useParams()
@@ -24,8 +21,7 @@ export default function CollectionBySlugPage() {
         ? params.slug[0]
         : ""
 
-  const [collectionMeta, setCollectionMeta] = useState<PublicCollection | null>(null)
-  const [resolveError, setResolveError] = useState("")
+  const allCollections = usePublicCollections()
   const [selectedCategory, setSelectedCategory] = useState("All")
   const [selectedCollection, setSelectedCollection] = useState("")
   const [selectedPriceRange, setSelectedPriceRange] = useState({ min: 0, max: Infinity })
@@ -38,28 +34,15 @@ export default function CollectionBySlugPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
 
-  useEffect(() => {
-    let cancelled = false
-    const run = async () => {
-      setResolveError("")
-      setCollectionMeta(null)
-      if (!slug) return
-      try {
-        const all = await fetchPublicCollectionsClient()
-        const found = all.find((c) => collectionNameToSlug(c.name) === slug)
-        if (!cancelled) {
-          if (found) setCollectionMeta(found)
-          else setResolveError("Collection not found")
-        }
-      } catch {
-        if (!cancelled) setResolveError("Could not load collections")
-      }
-    }
-    run()
-    return () => {
-      cancelled = true
-    }
-  }, [slug])
+  const collectionMeta = useMemo(() => {
+    if (!slug) return null
+    return allCollections.find((c) => collectionNameToSlug(c.name) === slug) ?? null
+  }, [slug, allCollections])
+
+  const resolveError = useMemo(() => {
+    if (!slug) return ""
+    return collectionMeta ? "" : "Collection not found"
+  }, [slug, collectionMeta])
 
   useEffect(() => {
     if (collectionMeta) setSelectedCollection(collectionMeta.name)
@@ -135,14 +118,6 @@ export default function CollectionBySlugPage() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center px-4">
         <p className="text-center text-muted-foreground">{resolveError}</p>
-      </div>
-    )
-  }
-
-  if (!collectionMeta && slug) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center px-4">
-        <p className="text-center text-muted-foreground">Loading collection…</p>
       </div>
     )
   }

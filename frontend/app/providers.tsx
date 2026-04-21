@@ -3,14 +3,24 @@
 import { Toaster } from "sonner"
 import { CartProvider } from "@/lib/cart-context"
 import { CustomerAuthProvider } from "@/lib/customer-auth-context"
+import { PublicCollectionsProvider } from "@/lib/public-collections-context"
+import type { PublicCollection } from "@/lib/collections-public"
 
-export function AppProviders({ children }: { children: React.ReactNode }) {
+export function AppProviders({
+  children,
+  initialCollections = [],
+}: {
+  children: React.ReactNode
+  initialCollections?: PublicCollection[]
+}) {
   return (
-    <CustomerAuthProvider>
-      <CartProvider>
-        {children}
-        <Toaster position="top-center" richColors closeButton duration={5000} />
-      </CartProvider>
-    </CustomerAuthProvider>
+    <PublicCollectionsProvider value={initialCollections}>
+      <CustomerAuthProvider>
+        <CartProvider>
+          {children}
+          <Toaster position="top-center" richColors closeButton duration={5000} />
+        </CartProvider>
+      </CustomerAuthProvider>
+    </PublicCollectionsProvider>
   )
 }

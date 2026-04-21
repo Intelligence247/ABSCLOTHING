@@ -71,17 +71,7 @@ export default function AdminRegisterPage() {
             </div>
             <h1 className="text-3xl font-serif font-bold text-[#1A1A1A] mb-2">Register admin</h1>
             <p className="text-[#666666] text-sm">
-              Create an administrator account using the bootstrap secret from your server.
-            </p>
-          </div>
-
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-6 text-xs text-amber-900">
-            <p className="font-semibold mb-1">How it works</p>
-            <p>
-              Set <span className="font-mono">ADMIN_REGISTRATION_SECRET</span> in{" "}
-              <span className="font-mono">backend/.env</span> (see{" "}
-              <span className="font-mono">env.example</span>). Enter that same value below once to create your
-              first admin. Remove or rotate the secret in production if you no longer want open sign-ups.
+              Authorised personnel only. Use the registration secret issued by your organisation.
             </p>
           </div>
 
@@ -169,7 +159,7 @@ export default function AdminRegisterPage() {
                   type="password"
                   value={adminSecret}
                   onChange={(e) => setAdminSecret(e.target.value)}
-                  placeholder="Matches ADMIN_REGISTRATION_SECRET on the API"
+                  placeholder="Registration secret"
                   className="w-full pl-10 pr-4 py-3 border border-[#E8E6E3] rounded-lg focus:outline-none focus:border-[#0A3D2E] focus:ring-2 focus:ring-[#0A3D2E]/20 font-mono text-sm"
                   required
                   autoComplete="off"

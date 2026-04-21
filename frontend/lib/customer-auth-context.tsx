@@ -84,15 +84,36 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
         localStorage.removeItem(STORAGE_USER)
       }
     }
+    setIsLoading(false)
 
-    apiFetchCustomerProfile()
-      .then(applyProfile)
-      .catch(() => {
-        clearCustomerToken()
-        localStorage.removeItem(STORAGE_USER)
-        setUser(null)
-      })
-      .finally(() => setIsLoading(false))
+    let cancelled = false
+    const validate = () => {
+      if (cancelled) return
+      apiFetchCustomerProfile()
+        .then((p) => {
+          if (!cancelled) applyProfile(p)
+        })
+        .catch(() => {
+          if (!cancelled) {
+            clearCustomerToken()
+            localStorage.removeItem(STORAGE_USER)
+            setUser(null)
+          }
+        })
+    }
+
+    if (typeof requestIdleCallback !== "undefined") {
+      const id = requestIdleCallback(validate, { timeout: 2500 })
+      return () => {
+        cancelled = true
+        cancelIdleCallback(id)
+      }
+    }
+    const t = setTimeout(validate, 0)
+    return () => {
+      cancelled = true
+      clearTimeout(t)
+    }
   }, [applyProfile])
 
   const login = useCallback(async (email: string, password: string) => {

@@ -77,21 +77,6 @@ export default function AdminLoginPage() {
             </p>
           </div>
 
-          {/* Demo Credentials Info */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6"
-          >
-            <p className="text-xs text-blue-800 mb-1 font-semibold">Sign in with your API admin user</p>
-            <p className="text-xs text-blue-700">
-              After <span className="font-mono">npm run seed</span>, default is{" "}
-              <span className="font-mono">admin@absclothing.local</span> / <span className="font-mono">Admin123!</span>
-              (override with <span className="font-mono">SEED_ADMIN_*</span> in backend <span className="font-mono">.env</span>).
-            </p>
-          </motion.div>
-
           {/* Error Message */}
           {error && (
             <motion.div
@@ -117,7 +102,7 @@ export default function AdminLoginPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@absclothing.local"
+                  placeholder="you@yourcompany.com"
                   className="w-full pl-10 pr-4 py-3 border border-[#E8E6E3] rounded-lg focus:outline-none focus:border-[#0A3D2E] focus:ring-2 focus:ring-[#0A3D2E]/20 transition-all"
                   required
                 />
@@ -157,13 +142,8 @@ export default function AdminLoginPage() {
           <p className="text-sm text-center text-[#666666] mt-6">
             Need an account?{" "}
             <Link href="/admin/register" className="text-[#0A3D2E] font-semibold hover:underline">
-              Register with server secret
+              Register as admin
             </Link>
-          </p>
-
-          <p className="text-xs text-[#666666] text-center mt-4">
-            Sign in uses <span className="font-mono">POST /api/users/login</span> with an{" "}
-            <span className="font-mono">isAdmin</span> user.
           </p>
         </div>
       </motion.div>

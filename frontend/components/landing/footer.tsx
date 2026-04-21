@@ -1,10 +1,11 @@
 "use client"
 
 import { motion, useInView } from "framer-motion"
-import { useEffect, useRef, useState } from "react"
+import { useRef } from "react"
 import Link from "next/link"
 import { Instagram, Youtube, Phone, MapPin, Mail } from "lucide-react"
-import { collectionNameToSlug, fetchPublicCollectionsClient, type PublicCollection } from "@/lib/collections-public"
+import { collectionNameToSlug } from "@/lib/collections-public"
+import { usePublicCollections } from "@/lib/public-collections-context"
 import { BrandLogo } from "@/components/brand/logo"
 
 const footerLinks = {
@@ -19,17 +20,7 @@ const footerLinks = {
 export function Footer() {
   const ref = useRef(null)
   const isInView = useInView(ref, { once: true, margin: "-50px" })
-  const [collections, setCollections] = useState<PublicCollection[]>([])
-
-  useEffect(() => {
-    let cancelled = false
-    fetchPublicCollectionsClient().then((c) => {
-      if (!cancelled) setCollections(c)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [])
+  const collections = usePublicCollections()
 
   const catalogueLinks =
     collections.length > 0

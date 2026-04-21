@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -8,12 +8,8 @@ import { Search, ShoppingBag, Menu, X, User, ChevronDown } from "lucide-react"
 import { useCart } from "@/lib/cart-context"
 import { useCustomerAuth } from "@/lib/customer-auth-context"
 import { BrandLogo } from "@/components/brand/logo"
-import {
-  collectionNameToSlug,
-  fetchPublicCollectionsClient,
-  isCollectionsSectionPath,
-  type PublicCollection,
-} from "@/lib/collections-public"
+import { collectionNameToSlug, isCollectionsSectionPath } from "@/lib/collections-public"
+import { usePublicCollections } from "@/lib/public-collections-context"
 
 const primaryLinks = [
   { name: "HOME", href: "/" },
@@ -23,36 +19,17 @@ const primaryLinks = [
 ]
 
 export function Navbar() {
-  const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [mobileCollectionsOpen, setMobileCollectionsOpen] = useState(false)
-  const [collections, setCollections] = useState<PublicCollection[]>([])
+  const collections = usePublicCollections()
   const pathname = usePathname()
-  const isHomePage = pathname === "/"
   const { items } = useCart()
   const { user: customer, logout: logoutCustomer } = useCustomerAuth()
   const cartCount = items.length
   const collectionsActive = isCollectionsSectionPath(pathname)
 
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50)
-    }
-    window.addEventListener("scroll", handleScroll)
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [])
-
-  useEffect(() => {
-    let cancelled = false
-    fetchPublicCollectionsClient().then((c) => {
-      if (!cancelled) setCollections(c)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  const showSolidBg = !isHomePage || isScrolled
+  /** Light landing hero: keep bar cream + dark links from first paint (readable over #F9F8F6). */
+  const showSolidBg = true
   const linkClass = `relative inline-block text-xs font-semibold tracking-widest transition-colors duration-300 ${
     showSolidBg ? "text-[#1A1A1A]" : "text-[#F9F8F6]"
   } hover:text-[#C5A059]`
@@ -193,18 +170,6 @@ export function Navbar() {
                     {cartCount}
                   </span>
                 )}
-              </Link>
-
-              <Link
-                href="/admin/login"
-                className={`p-2.5 text-xs font-semibold tracking-wider transition-all duration-300 ${
-                  showSolidBg
-                    ? "text-[#666666] hover:bg-[#E8E6E3] hover:text-[#1A1A1A]"
-                    : "text-[#F9F8F6]/60 hover:bg-white/10 hover:text-[#F9F8F6]"
-                }`}
-                title="Admin"
-              >
-                Admin
               </Link>
             </div>
 

@@ -1,3 +1,4 @@
+import { cache } from "react"
 import { API_BASE_URL } from "@/lib/api"
 import { fetchCollectionsApi } from "@/lib/collection-api"
 
@@ -35,7 +36,7 @@ export function collectionNameToSlug(name: string): string {
   return s || "collection"
 }
 
-export async function getPublicCollections(): Promise<PublicCollection[]> {
+async function fetchPublicCollections(): Promise<PublicCollection[]> {
   try {
     const res = await fetch(`${API_BASE_URL}/api/collections`, {
       next: { revalidate: 120 },
@@ -48,6 +49,9 @@ export async function getPublicCollections(): Promise<PublicCollection[]> {
     return []
   }
 }
+
+/** Dedupes within a single RSC request (layout + page both calling this = one fetch). */
+export const getPublicCollections = cache(fetchPublicCollections)
 
 export async function fetchPublicCollectionsClient(): Promise<PublicCollection[]> {
   const rows = await fetchCollectionsApi()

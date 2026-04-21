@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { AdminProvider, useAdmin } from "@/lib/admin-context"
 import { AdminDataProvider } from "@/lib/admin-data-context"
@@ -11,7 +11,8 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAdmin()
   const router = useRouter()
   const pathname = usePathname()
-  
+  const mainScrollRef = useRef<HTMLElement>(null)
+
   const isPublicAuthPage = pathname === "/admin/login" || pathname === "/admin/register"
 
   useEffect(() => {
@@ -19,6 +20,10 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
       router.push("/admin/login")
     }
   }, [isAuthenticated, isLoading, router, isPublicAuthPage])
+
+  useEffect(() => {
+    mainScrollRef.current?.scrollTo({ top: 0, left: 0, behavior: "auto" })
+  }, [pathname])
 
   if (isPublicAuthPage) {
     return <>{children}</>
@@ -45,7 +50,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
       <AdminSidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <AdminHeader />
-        <main className="flex-1 overflow-auto">
+        <main ref={mainScrollRef} className="flex-1 overflow-auto">
           {children}
         </main>
       </div>

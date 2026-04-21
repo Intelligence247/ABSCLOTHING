@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { Save, Bell, Lock, Palette, Landmark } from "lucide-react"
-import { API_BASE_URL, ApiError, getAuthToken } from "@/lib/api"
+import { ApiError, getAuthToken } from "@/lib/api"
 import { useAdmin } from "@/lib/admin-context"
 import {
   fetchAdminPaymentSettings,
@@ -58,9 +58,7 @@ export default function SettingsPage() {
 
     if (typeof window !== "undefined" && !getAuthToken()) {
       setBankLoading(false)
-      setBankError(
-        "No JWT in this browser (key abs_admin_token). Sign out and sign in again at /admin/login."
-      )
+      setBankError("Your session is missing or expired. Please sign out and sign in again.")
       return
     }
 
@@ -79,15 +77,13 @@ export default function SettingsPage() {
         if (err instanceof ApiError) {
           const hint =
             err.status === 401
-              ? " Try signing out and back in. If you changed JWT_SECRET in .env, old tokens are invalid."
+              ? " Try signing out and signing in again."
               : err.status === 404
-                ? ` No route at ${API_BASE_URL}/api/store/admin/payment-settings — restart the backend from the latest code.`
+                ? " The payment settings service was not found. Contact support if this continues."
                 : ""
           setBankError(`${err.message} (HTTP ${err.status})${hint}`)
         } else if (err instanceof TypeError) {
-          setBankError(
-            `Network error reaching ${API_BASE_URL}. Check NEXT_PUBLIC_API_URL in frontend/.env and that the API is running.`
-          )
+          setBankError("Could not reach the server. Check your connection and try again.")
         } else {
           setBankError(err instanceof Error ? err.message : "Could not load bank settings.")
         }
@@ -197,9 +193,8 @@ export default function SettingsPage() {
           <h2 className="text-2xl font-serif font-bold text-[#1A1A1A]">Bank transfer (checkout)</h2>
         </div>
         <p className="text-sm text-[#666666] mb-6">
-          Shown on the storefront checkout and order success page. Leave a field empty to fall back to the same
-          variable in <span className="font-mono text-xs">backend/.env</span> (e.g.{" "}
-          <span className="font-mono text-xs">BANK_ACCOUNT_NUMBER</span>).
+          Shown on the storefront checkout and order success page. Leave a field blank to use the server default for
+          that value.
         </p>
 
         {bankLoading ? (

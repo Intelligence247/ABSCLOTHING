@@ -8,7 +8,7 @@ import { Navbar } from "@/components/landing/navbar"
 import { Footer } from "@/components/landing/footer"
 import { useCart } from "@/lib/cart-context"
 import { useCustomerAuth } from "@/lib/customer-auth-context"
-import { API_BASE_URL, ApiError } from "@/lib/api"
+import { ApiError } from "@/lib/api"
 import {
   buildOrderItemsFromCart,
   createOrder,
@@ -126,8 +126,7 @@ export default function CheckoutPage() {
       .catch(() => {
         if (!cancelled) {
           setBankInfoError(
-            `Could not load bank details from the API (${API_BASE_URL}/api/store/payment-info). ` +
-              "Restart the backend and check NEXT_PUBLIC_API_URL."
+            "We could not load payment instructions right now. Please refresh the page or try again in a few minutes."
           )
         }
       })

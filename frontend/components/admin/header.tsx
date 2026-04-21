@@ -26,15 +26,34 @@ export function AdminHeader() {
       </div>
 
       {/* Right Side */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         {/* Notifications */}
         <motion.button
+          type="button"
           whileHover={{ scale: 1.1 }}
           className="p-2 hover:bg-[#F9F8F6] rounded-lg transition-colors relative"
+          aria-label="Notifications"
         >
           <Bell className="w-5 h-5 text-[#666666]" />
           <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
         </motion.button>
+
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="inline-flex sm:hidden items-center justify-center rounded-lg border border-[#E8E6E3] bg-white p-2 text-[#1A1A1A] transition-colors hover:border-[#0A3D2E] hover:bg-[#F9F8F6]"
+          aria-label="Log out"
+        >
+          <LogOut className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="hidden sm:inline-flex items-center gap-2 rounded-lg border border-[#E8E6E3] bg-white px-3 py-2 text-sm font-semibold text-[#1A1A1A] transition-colors hover:border-[#0A3D2E] hover:bg-[#F9F8F6] hover:text-[#0A3D2E]"
+        >
+          <LogOut className="h-4 w-4" aria-hidden />
+          Log out
+        </button>
 
         {/* User Menu */}
         <div className="relative">
@@ -44,7 +63,7 @@ export function AdminHeader() {
             className="flex items-center gap-3 px-3 py-1.5 hover:bg-[#F9F8F6] rounded-lg transition-colors"
           >
             <div className="w-8 h-8 bg-[#0A3D2E] rounded-full flex items-center justify-center text-white text-sm font-semibold">
-              {user?.name.charAt(0)}
+              {user?.name?.charAt(0) ?? "?"}
             </div>
             <span className="text-sm font-medium text-[#1A1A1A]">{user?.name}</span>
           </motion.button>
