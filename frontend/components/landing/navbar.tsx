@@ -10,6 +10,7 @@ import { useCustomerAuth } from "@/lib/customer-auth-context"
 import { BrandLogo } from "@/components/brand/logo"
 import { collectionNameToSlug, isCollectionsSectionPath } from "@/lib/collections-public"
 import { usePublicCollections } from "@/lib/public-collections-context"
+import Image from "next/image"
 
 const primaryLinks = [
   { name: "HOME", href: "/" },
@@ -46,14 +47,15 @@ export function Navbar() {
       >
         <div className="max-w-7xl mx-auto px-4 md:px-8">
           <div className="flex items-center justify-between h-20">
-            <motion.div whileHover={{ scale: 1.02 }} className="shrink-0">
+            {/* <motion.div whileHover={{ scale: 1.02 }} className="shrink-0">
               <BrandLogo
                 href="/"
                 compact={false}
                 showBadge={!showSolidBg}
                 theme={showSolidBg ? "dark" : "gold"}
               />
-            </motion.div>
+            </motion.div> */}
+            <Image src="/logo2.webp" alt="ABS Clothing" width={100} height={100} />
 
             <nav className="hidden md:flex items-center gap-6 lg:gap-8">
               {primaryLinks.slice(0, 2).map((link) => (

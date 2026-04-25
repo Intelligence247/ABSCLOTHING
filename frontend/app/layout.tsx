@@ -26,7 +26,7 @@ export const metadata: Metadata = {
   keywords: ['Nigerian fashion', 'bespoke tailoring', 'Agbada', 'African fashion', 'custom suits', 'Ilorin tailor'],
   authors: [{ name: 'ABS Clothing' }],
   icons: {
-    icon: '/icon.png',
+    icon: '/logo2.webp',
   },
   openGraph: {
     title: 'ABS Clothing | Bespoke Nigerian Fashion',
