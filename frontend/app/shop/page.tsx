@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { motion } from "framer-motion"
 import { Navbar } from "@/components/landing/navbar"
 import { Footer } from "@/components/landing/footer"
@@ -25,6 +25,7 @@ export default function ShopPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
+  const [searchTerm, setSearchTerm] = useState("")
   const [availableCategories, setAvailableCategories] = useState<string[]>(["All"])
   const [availableCollections, setAvailableCollections] = useState<string[]>(["All"])
 
@@ -89,6 +90,16 @@ export default function ShopPage() {
     sortBy,
   ])
 
+  const filteredProducts = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase()
+    if (!term) return products
+    return products.filter((p) =>
+      [p.name, p.category, p.collection, p.description].some((value) =>
+        value.toLowerCase().includes(term)
+      )
+    )
+  }, [products, searchTerm])
+
   return (
     <main className="min-h-screen bg-[#F9F8F6] pt-20">
       <Navbar />
@@ -135,7 +146,9 @@ export default function ShopPage() {
       <section className="px-6 lg:px-12 py-12 lg:py-20">
         <div className="max-w-7xl mx-auto">
           <ShopHeader
-            totalProducts={products.length}
+            totalProducts={filteredProducts.length}
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
             sortBy={sortBy}
             setSortBy={setSortBy}
             gridView={gridView}
@@ -166,12 +179,12 @@ export default function ShopPage() {
             ) : isLoading ? (
               <div className="flex-1 text-center py-16 text-[#666666]">Loading products...</div>
             ) : (
-              <ProductGrid products={products} gridView={gridView} />
+              <ProductGrid products={filteredProducts} gridView={gridView} />
             )}
           </div>
 
           {/* Pagination Placeholder */}
-          {!isLoading && !error && products.length > 0 && (
+          {!isLoading && !error && filteredProducts.length > 0 && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}

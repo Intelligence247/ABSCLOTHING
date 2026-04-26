@@ -4,12 +4,12 @@ import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Search, ShoppingBag, Menu, X, User, ChevronDown } from "lucide-react"
+import { ShoppingBag, Menu, X, User, ChevronDown, Heart } from "lucide-react"
 import { useCart } from "@/lib/cart-context"
 import { useCustomerAuth } from "@/lib/customer-auth-context"
-import { BrandLogo } from "@/components/brand/logo"
 import { collectionNameToSlug, isCollectionsSectionPath } from "@/lib/collections-public"
 import { usePublicCollections } from "@/lib/public-collections-context"
+import { useWishlist } from "@/lib/wishlist-context"
 import Image from "next/image"
 
 const primaryLinks = [
@@ -25,8 +25,10 @@ export function Navbar() {
   const collections = usePublicCollections()
   const pathname = usePathname()
   const { items } = useCart()
+  const { ids: wishlistIds } = useWishlist()
   const { user: customer, logout: logoutCustomer } = useCustomerAuth()
-  const cartCount = items.length
+  const cartCount = items.reduce((sum, item) => sum + item.quantity, 0)
+  const wishlistCount = wishlistIds.length
   const collectionsActive = isCollectionsSectionPath(pathname)
 
   /** Light landing hero: keep bar cream + dark links from first paint (readable over #F9F8F6). */
@@ -55,7 +57,9 @@ export function Navbar() {
                 theme={showSolidBg ? "dark" : "gold"}
               />
             </motion.div> */}
-            <Image src="/logo2.webp" alt="ABS Clothing" width={100} height={100} />
+            <Link href="/" aria-label="ABS Clothing home" className="shrink-0">
+              <Image src="/logo2.webp" alt="ABS Clothing" width={100} height={100} className="h-auto w-20 md:w-[100px]" />
+            </Link>
 
             <nav className="hidden md:flex items-center gap-6 lg:gap-8">
               {primaryLinks.slice(0, 2).map((link) => (
@@ -130,15 +134,6 @@ export function Navbar() {
 
             <div className="hidden md:flex items-center gap-2">
               <Link
-                href="/shop"
-                className={`p-2.5 transition-all duration-300 ${
-                  showSolidBg ? "text-[#1A1A1A] hover:bg-[#E8E6E3]" : "text-[#F9F8F6] hover:bg-white/10"
-                }`}
-                aria-label="Shop"
-              >
-                <Search className="w-5 h-5" />
-              </Link>
-              <Link
                 href={customer ? "/shop" : "/account/login"}
                 title={customer ? customer.email : "Sign in"}
                 className={`p-2.5 transition-all duration-300 ${
@@ -146,6 +141,20 @@ export function Navbar() {
                 }`}
               >
                 <User className="w-5 h-5" />
+              </Link>
+              <Link
+                href="/wishlist"
+                className={`p-2.5 transition-all duration-300 relative ${
+                  showSolidBg ? "text-[#1A1A1A] hover:bg-[#E8E6E3]" : "text-[#F9F8F6] hover:bg-white/10"
+                }`}
+                aria-label="Wishlist"
+              >
+                <Heart className="w-5 h-5" />
+                {wishlistCount > 0 && (
+                  <span className="absolute top-0.5 right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#C5A059] px-1 text-[10px] font-bold text-[#05120F]">
+                    {wishlistCount}
+                  </span>
+                )}
               </Link>
               {customer && (
                 <button
@@ -169,6 +178,40 @@ export function Navbar() {
                 <ShoppingBag className="w-5 h-5" />
                 {cartCount > 0 && (
                   <span className="absolute top-0.5 right-0.5 w-4 h-4 bg-[#C5A059] text-[#05120F] text-[10px] font-bold flex items-center justify-center">
+                    {cartCount}
+                  </span>
+                )}
+              </Link>
+            </div>
+
+            <div className="flex items-center gap-1 md:hidden">
+              <Link
+                href={customer ? "/shop" : "/account/login"}
+                className="p-2 text-[#1A1A1A] transition-colors hover:bg-[#E8E6E3]"
+                aria-label={customer ? "Account" : "Sign in"}
+              >
+                <User className="h-5 w-5" />
+              </Link>
+              <Link
+                href="/wishlist"
+                className="relative p-2 text-[#1A1A1A] transition-colors hover:bg-[#E8E6E3]"
+                aria-label="Wishlist"
+              >
+                <Heart className="h-5 w-5" />
+                {wishlistCount > 0 && (
+                  <span className="absolute right-0 top-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#C5A059] px-1 text-[10px] font-bold text-[#05120F]">
+                    {wishlistCount}
+                  </span>
+                )}
+              </Link>
+              <Link
+                href="/cart"
+                className="relative p-2 text-[#1A1A1A] transition-colors hover:bg-[#E8E6E3]"
+                aria-label={`Cart${cartCount > 0 ? `, ${cartCount} item${cartCount === 1 ? "" : "s"}` : ""}`}
+              >
+                <ShoppingBag className="h-5 w-5" />
+                {cartCount > 0 && (
+                  <span className="absolute right-0 top-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#C5A059] px-1 text-[10px] font-bold text-[#05120F]">
                     {cartCount}
                   </span>
                 )}
@@ -293,19 +336,26 @@ export function Navbar() {
                 transition={{ delay: 0.25 }}
                 className="mt-12 pt-8 border-t border-[#E8E6E3]"
               >
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-3">
                   <Link
                     href="/shop"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center justify-center gap-2 bg-[#E8E6E3] text-[#1A1A1A] py-4 text-sm font-semibold tracking-wider"
+                    className="flex items-center justify-center bg-[#E8E6E3] text-[#1A1A1A] py-4 text-xs font-semibold tracking-wider"
                   >
-                    <Search className="w-5 h-5" />
                     SHOP
+                  </Link>
+                  <Link
+                    href="/wishlist"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center justify-center gap-2 bg-[#E8E6E3] text-[#1A1A1A] py-4 text-xs font-semibold tracking-wider"
+                  >
+                    <Heart className="w-5 h-5" />
+                    WISH ({wishlistCount})
                   </Link>
                   <Link
                     href="/cart"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center justify-center gap-2 bg-[#0A3D2E] text-[#F9F8F6] py-4 text-sm font-semibold tracking-wider"
+                    className="flex items-center justify-center gap-2 bg-[#0A3D2E] text-[#F9F8F6] py-4 text-xs font-semibold tracking-wider"
                   >
                     <ShoppingBag className="w-5 h-5" />
                     CART ({cartCount})

@@ -5,8 +5,10 @@ import { useParams } from "next/navigation"
 import { motion } from "framer-motion"
 import Image from "next/image"
 import Link from "next/link"
+import { toast } from "sonner"
 import type { Product } from "@/lib/products"
 import { useCart } from "@/lib/cart-context"
+import { useWishlist } from "@/lib/wishlist-context"
 import { Heart, Share2, Truck, Shield, RotateCcw, Check } from "lucide-react"
 import { Navbar } from "@/components/landing/navbar"
 import { Footer } from "@/components/landing/footer"
@@ -24,6 +26,7 @@ export default function ProductDetailPage() {
   const params = useParams()
   const productId = productIdFromParams(params?.id)
   const { addItem } = useCart()
+  const { isWishlisted, toggleWishlist } = useWishlist()
   const [product, setProduct] = useState<Product | null>(null)
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -31,9 +34,9 @@ export default function ProductDetailPage() {
   const [selectedColor, setSelectedColor] = useState(0)
   const [selectedSize, setSelectedSize] = useState("")
   const [quantity, setQuantity] = useState(1)
-  const [isLiked, setIsLiked] = useState(false)
   const [mainImage, setMainImage] = useState("")
   const [addedToCart, setAddedToCart] = useState(false)
+  const isLiked = product ? isWishlisted(product.id) : false
 
   useEffect(() => {
     let cancelled = false
@@ -125,7 +128,7 @@ export default function ProductDetailPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-16">
           {/* Images */}
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
-            <div className="relative aspect-[3/4] overflow-hidden bg-muted mb-4">
+            <div className="relative aspect-3/4 overflow-hidden bg-muted mb-4">
               <Image
                 src={mainImage}
                 alt={product.name}
@@ -248,7 +251,11 @@ export default function ProductDetailPage() {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => {
-                  addItem(product, product.colors[selectedColor].name, selectedSize, quantity)
+                  const color = product.colors[selectedColor].name
+                  addItem(product, color, selectedSize, quantity)
+                  toast.success(`${product.name} added to cart`, {
+                    description: `${quantity} item${quantity > 1 ? "s" : ""} · ${color}${selectedSize ? ` / ${selectedSize}` : ""}`,
+                  })
                   setAddedToCart(true)
                   setTimeout(() => setAddedToCart(false), 2000)
                 }}
@@ -267,8 +274,16 @@ export default function ProductDetailPage() {
               {/* Wishlist & Share */}
               <div className="flex gap-4">
                 <motion.button
+                  type="button"
                   whileHover={{ scale: 1.05 }}
-                  onClick={() => setIsLiked(!isLiked)}
+                  onClick={() => {
+                    const added = toggleWishlist(product.id)
+                    toast[added ? "success" : "info"](
+                      added ? "Added to wishlist" : "Removed from wishlist",
+                      { description: product.name }
+                    )
+                  }}
+                  aria-pressed={isLiked}
                   className={`flex-1 flex items-center justify-center gap-2 py-3 border-2 transition-all ${
                     isLiked
                       ? "border-accent bg-accent/10 text-accent"

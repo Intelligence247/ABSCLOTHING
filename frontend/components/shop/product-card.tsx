@@ -5,8 +5,10 @@ import Image from "next/image"
 import Link from "next/link"
 import { Heart, Eye, ShoppingBag } from "lucide-react"
 import { useState } from "react"
+import { toast } from "sonner"
 import type { Product } from "@/lib/products"
 import { useCart } from "@/lib/cart-context"
+import { useWishlist } from "@/lib/wishlist-context"
 
 interface ProductCardProps {
   product: Product
@@ -15,10 +17,10 @@ interface ProductCardProps {
 
 export function ProductCard({ product, index }: ProductCardProps) {
   const { addItem } = useCart()
-  const [isHovered, setIsHovered] = useState(false)
-  const [isLiked, setIsLiked] = useState(false)
+  const { isWishlisted, toggleWishlist } = useWishlist()
   const [selectedColor, setSelectedColor] = useState(0)
   const [justAdded, setJustAdded] = useState(false)
+  const isLiked = isWishlisted(product.id)
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault()
@@ -27,8 +29,21 @@ export function ProductCard({ product, index }: ProductCardProps) {
     const size = product.sizes[0] ?? "One Size"
     if (!color) return
     addItem(product, color, size, 1)
+    toast.success(`${product.name} added to cart`, {
+      description: `${color}${size ? ` / ${size}` : ""}`,
+    })
     setJustAdded(true)
     window.setTimeout(() => setJustAdded(false), 1600)
+  }
+
+  const handleWishlist = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const added = toggleWishlist(product.id)
+    toast[added ? "success" : "info"](
+      added ? "Added to wishlist" : "Removed from wishlist",
+      { description: product.name }
+    )
   }
 
   const formatPrice = (price: number) => {
@@ -45,11 +60,9 @@ export function ProductCard({ product, index }: ProductCardProps) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: index * 0.05 }}
       className="group"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
     >
       {/* Image Container */}
-      <div className="relative aspect-[3/4] overflow-hidden bg-[#E8E6E3] mb-4">
+      <div className="relative aspect-3/4 overflow-hidden bg-[#E8E6E3] mb-4">
         <Image
           src={product.image}
           alt={product.name}
@@ -78,10 +91,13 @@ export function ProductCard({ product, index }: ProductCardProps) {
 
         {/* Wishlist Button */}
         <motion.button
+          type="button"
           initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: isHovered ? 1 : 0, scale: isHovered ? 1 : 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.2 }}
-          onClick={() => setIsLiked(!isLiked)}
+          onClick={handleWishlist}
+          aria-pressed={isLiked}
+          aria-label={isLiked ? "Remove from wishlist" : "Add to wishlist"}
           className={`absolute top-4 right-4 w-10 h-10 flex items-center justify-center transition-colors ${
             isLiked
               ? "bg-[#C5A059] text-[#05120F]"

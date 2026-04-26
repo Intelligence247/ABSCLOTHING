@@ -2,11 +2,13 @@
 
 import { motion } from "framer-motion"
 import Link from "next/link"
-import { ChevronRight, SlidersHorizontal, Grid3X3, LayoutGrid } from "lucide-react"
+import { ChevronRight, SlidersHorizontal, Grid3X3, LayoutGrid, Search } from "lucide-react"
 import { sortOptions } from "@/lib/products"
 
 interface ShopHeaderProps {
   totalProducts: number
+  searchTerm: string
+  setSearchTerm: (term: string) => void
   sortBy: string
   setSortBy: (sort: string) => void
   gridView: "grid" | "large"
@@ -16,6 +18,8 @@ interface ShopHeaderProps {
 
 export function ShopHeader({
   totalProducts,
+  searchTerm,
+  setSearchTerm,
   sortBy,
   setSortBy,
   gridView,
@@ -65,6 +69,23 @@ export function ShopHeader({
         transition={{ duration: 0.5, delay: 0.2 }}
         className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-4 border-t border-[#E8E6E3]"
       >
+        {/* Search */}
+        <div className="w-full">
+          <label htmlFor="shop-search" className="sr-only">
+            Search products
+          </label>
+          <div className="relative w-full max-w-xl">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#666666]" />
+            <input
+              id="shop-search"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search by name, category or collection..."
+              className="w-full border border-[#E8E6E3] bg-white py-2.5 pl-10 pr-4 text-sm text-[#1A1A1A] placeholder:text-[#666666] focus:border-[#0A3D2E] focus:outline-none"
+            />
+          </div>
+        </div>
+
         {/* Left Side */}
         <div className="flex items-center gap-4">
           <button

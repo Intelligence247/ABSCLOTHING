@@ -53,118 +53,120 @@ export default function CartPage() {
         </div>
       </section>
 
-      <div className="container mx-auto px-4 py-16">
+      <div className="container mx-auto px-4 py-10 md:py-16">
         {items.length === 0 ? (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="text-center py-20"
           >
-            <h2 className="text-3xl font-serif mb-4">Your cart is empty</h2>
+            <h2 className="mb-4 text-2xl font-serif md:text-3xl">Your cart is empty</h2>
             <p className="text-foreground/70 mb-8">Start shopping to add items to your cart</p>
             <Link
               href="/shop"
-              className="inline-block bg-primary text-primary-foreground px-12 py-4 font-semibold tracking-widest uppercase hover:bg-primary/90 transition-colors"
+              className="inline-block bg-primary px-8 py-3 text-sm font-semibold uppercase tracking-widest text-primary-foreground transition-colors hover:bg-primary/90 md:px-12 md:py-4"
             >
               Continue Shopping
             </Link>
           </motion.div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-3 lg:gap-12">
             {/* Cart Items */}
-            <div className="lg:col-span-2 space-y-6">
+            <div className="space-y-6 lg:col-span-2">
               {items.map((item, index) => (
                 <motion.div
                   key={`${item.product.id}-${item.color}-${item.size}`}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05, duration: 0.5 }}
-                  className="flex gap-6 border-b border-border pb-6"
+                  className="border-b border-border pb-6"
                 >
-                  {/* Image */}
-                  <div className="relative w-24 h-32 shrink-0 overflow-hidden bg-muted">
-                    <Image
-                      src={item.product.image}
-                      alt={item.product.name}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-
-                  {/* Details */}
-                  <div className="flex-1 flex flex-col justify-between">
-                    <div>
-                      <Link href={`/shop/${item.product.id}`}>
-                        <h3 className="font-serif text-lg hover:text-primary transition-colors mb-2">
-                          {item.product.name}
-                        </h3>
-                      </Link>
-                      <div className="flex gap-4 text-sm text-foreground/70 mb-2">
-                        <span>
-                          Color:{" "}
-                          <span
-                            className="inline-block w-3 h-3 rounded-full ml-1 align-middle"
-                            style={{
-                              backgroundColor: item.product.colors.find((c) => c.name === item.color)?.hex,
-                            }}
-                          />
-                        </span>
-                        <span>Size: {item.size}</span>
-                      </div>
+                  <div className="flex gap-4 sm:gap-6">
+                    {/* Image */}
+                    <div className="relative h-28 w-20 shrink-0 overflow-hidden bg-muted sm:h-32 sm:w-24">
+                      <Image
+                        src={item.product.image}
+                        alt={item.product.name}
+                        fill
+                        className="object-cover"
+                      />
                     </div>
 
-                    {/* Price & Quantity */}
-                    <div className="flex items-center justify-between">
+                    {/* Details */}
+                    <div className="flex min-w-0 flex-1 flex-col justify-between">
                       <div>
-                        <p className="text-sm text-foreground/70 mb-1">Price</p>
-                        <p className="text-lg font-semibold text-accent">
+                        <Link href={`/shop/${item.product.id}`}>
+                          <h3 className="mb-2 font-serif text-base transition-colors hover:text-primary sm:text-lg">
+                            {item.product.name}
+                          </h3>
+                        </Link>
+                        <div className="mb-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-foreground/70">
+                          <span>
+                            Color:{" "}
+                            <span
+                              className="ml-1 inline-block h-3 w-3 align-middle"
+                              style={{
+                                backgroundColor: item.product.colors.find((c) => c.name === item.color)?.hex,
+                              }}
+                            />
+                          </span>
+                          <span>Size: {item.size}</span>
+                        </div>
+                        <p className="text-sm text-foreground/70">Price</p>
+                        <p className="text-base font-semibold text-accent sm:text-lg">
                           {formatPrice(item.product.price)}
                         </p>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      {/* Price & Quantity */}
+                      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() =>
+                              updateQuantity(
+                                item.product.id,
+                                item.color,
+                                item.size,
+                                item.quantity - 1
+                              )
+                            }
+                            className="flex h-8 w-8 items-center justify-center border border-border transition-colors hover:bg-muted"
+                            aria-label={`Decrease quantity for ${item.product.name}`}
+                          >
+                            <Minus className="w-4 h-4" />
+                          </button>
+                          <span className="w-8 text-center font-semibold">{item.quantity}</span>
+                          <button
+                            onClick={() =>
+                              updateQuantity(
+                                item.product.id,
+                                item.color,
+                                item.size,
+                                item.quantity + 1
+                              )
+                            }
+                            className="flex h-8 w-8 items-center justify-center border border-border transition-colors hover:bg-muted"
+                            aria-label={`Increase quantity for ${item.product.name}`}
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+                        </div>
+
                         <button
-                          onClick={() =>
-                            updateQuantity(
-                              item.product.id,
-                              item.color,
-                              item.size,
-                              item.quantity - 1
-                            )
-                          }
-                          className="w-8 h-8 border border-border flex items-center justify-center hover:bg-muted transition-colors"
+                          onClick={() => removeItem(item.product.id, item.color, item.size)}
+                          className="text-foreground/50 transition-colors hover:text-red-500"
+                          aria-label={`Remove ${item.product.name} from cart`}
                         >
-                          <Minus className="w-4 h-4" />
-                        </button>
-                        <span className="w-8 text-center font-semibold">{item.quantity}</span>
-                        <button
-                          onClick={() =>
-                            updateQuantity(
-                              item.product.id,
-                              item.color,
-                              item.size,
-                              item.quantity + 1
-                            )
-                          }
-                          className="w-8 h-8 border border-border flex items-center justify-center hover:bg-muted transition-colors"
-                        >
-                          <Plus className="w-4 h-4" />
+                          <Trash2 className="w-5 h-5" />
                         </button>
                       </div>
-
-                      <button
-                        onClick={() => removeItem(item.product.id, item.color, item.size)}
-                        className="text-foreground/50 hover:text-red-500 transition-colors"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
                     </div>
                   </div>
 
                   {/* Subtotal */}
-                  <div className="text-right">
-                    <p className="text-sm text-foreground/70 mb-1">Subtotal</p>
-                    <p className="text-lg font-semibold">
+                  <div className="mt-4 flex items-center justify-between border-t border-border pt-3 sm:justify-end sm:gap-4 sm:border-t-0 sm:pt-0">
+                    <p className="text-sm text-foreground/70 sm:mb-1">Subtotal</p>
+                    <p className="text-base font-semibold sm:text-lg">
                       {formatPrice(item.product.price * item.quantity)}
                     </p>
                   </div>
@@ -177,10 +179,10 @@ export default function CartPage() {
               initial={{ opacity: 0, x: 30 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.2, duration: 0.6 }}
-              className="h-fit sticky top-24 space-y-6"
+              className="h-fit space-y-6 lg:sticky lg:top-24"
             >
-              <div className="bg-muted p-8 space-y-4">
-                <h2 className="text-2xl font-serif mb-6">Order Summary</h2>
+              <div className="space-y-4 bg-muted p-5 sm:p-8">
+                <h2 className="mb-6 font-serif text-xl sm:text-2xl">Order Summary</h2>
 
                 <div className="space-y-3 border-b border-border pb-4">
                   <div className="flex justify-between text-foreground/70">
@@ -209,7 +211,7 @@ export default function CartPage() {
 
                 <Link
                   href={user ? "/checkout" : "/account/login?returnTo=%2Fcheckout"}
-                  className="block w-full text-center bg-primary text-primary-foreground py-4 font-semibold tracking-widest uppercase hover:bg-primary/90 transition-colors"
+                  className="block w-full bg-primary py-3 text-center text-sm font-semibold uppercase tracking-widest text-primary-foreground transition-colors hover:bg-primary/90 sm:py-4"
                 >
                   {user ? "Proceed to checkout" : "Sign in to checkout"}
                 </Link>
@@ -224,7 +226,7 @@ export default function CartPage() {
 
                 <Link
                   href="/shop"
-                  className="block text-center py-3 border border-border hover:border-primary transition-colors text-sm font-semibold tracking-widest uppercase"
+                  className="block border border-border py-3 text-center text-xs font-semibold uppercase tracking-widest transition-colors hover:border-primary sm:text-sm"
                 >
                   Continue Shopping
                 </Link>

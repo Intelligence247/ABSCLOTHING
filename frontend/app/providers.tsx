@@ -4,6 +4,7 @@ import { Toaster } from "sonner"
 import { CartProvider } from "@/lib/cart-context"
 import { CustomerAuthProvider } from "@/lib/customer-auth-context"
 import { PublicCollectionsProvider } from "@/lib/public-collections-context"
+import { WishlistProvider } from "@/lib/wishlist-context"
 import type { PublicCollection } from "@/lib/collections-public"
 
 export function AppProviders({
@@ -16,10 +17,12 @@ export function AppProviders({
   return (
     <PublicCollectionsProvider value={initialCollections}>
       <CustomerAuthProvider>
-        <CartProvider>
-          {children}
-          <Toaster position="top-center" richColors closeButton duration={5000} />
-        </CartProvider>
+        <WishlistProvider>
+          <CartProvider>
+            {children}
+            <Toaster position="top-center" richColors closeButton duration={5000} />
+          </CartProvider>
+        </WishlistProvider>
       </CustomerAuthProvider>
     </PublicCollectionsProvider>
   )
