@@ -7,6 +7,7 @@ import { Instagram, Youtube, Phone, MapPin, Mail } from "lucide-react"
 import { collectionNameToSlug } from "@/lib/collections-public"
 import { usePublicCollections } from "@/lib/public-collections-context"
 import { BrandLogo } from "@/components/brand/logo"
+import Image from "next/image"
 
 const footerLinks = {
   menu: [
@@ -41,7 +42,7 @@ export function Footer() {
             className="lg:col-span-2"
           >
             <div className="mb-6">
-              <BrandLogo href="/" theme="gold" showBadge compact />
+  <Image src="/logo2.webp" alt="ABS Clothing" width={100} height={100} className="h-auto w-20 md:w-[100px]" />
             </div>
             <p className="text-[#F9F8F6]/60 mb-8 max-w-sm leading-relaxed text-sm lg:text-base">
               ABS Clothing is a premium fashion brand that emphasizes quality craftsmanship, attention to detail, and

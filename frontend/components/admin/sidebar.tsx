@@ -14,6 +14,7 @@ import {
   Settings,
 } from "lucide-react"
 import { BrandLogo } from "@/components/brand/logo"
+import Image from "next/image"
 
 const menuItems = [
   { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
@@ -35,7 +36,7 @@ export function AdminSidebar() {
       <div className="p-6 border-b border-[#E8E6E3]">
         <Link href="/admin/dashboard" className="flex items-center gap-3">
           <div className="w-10 h-10 bg-[#05120F] rounded-lg flex items-center justify-center border border-[#C5A059]/30">
-            <span className="text-[#C5A059] font-serif font-bold text-lg">A</span>
+          <Image src="/logo2.webp" alt="ABS Clothing" width={100} height={100} className="h-auto w-20 md:w-[100px]" />
           </div>
           <div>
             <BrandLogo href="" compact theme="dark" />
